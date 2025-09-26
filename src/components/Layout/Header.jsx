@@ -15,6 +15,7 @@ import {
 import { logout } from '../../store/slices/authSlice';
 import { useTheme } from '../../store/useTheme';
 import NotificationDropdown from '../Notifications/NotificationDropdown';
+import ConnectButton from '../Web3/ConnectButton';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -77,6 +78,9 @@ const Header = () => {
 
             {/* Right Side Actions */}
             <div className="flex items-center space-x-4">
+              {/* Wallet Connect */}
+              <ConnectButton isAuthenticated={isAuthenticated} />
+              
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}

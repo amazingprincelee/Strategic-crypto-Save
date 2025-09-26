@@ -1,9 +1,9 @@
+// Web3Modal will be initialized in WalletProvider
 import { createConfig, configureChains } from 'wagmi';
-import { mainnet, sepolia, hardhat } from 'wagmi/chains';
-import { publicProvider } from 'wagmi/providers/public';
+import { mainnet, sepolia, polygon, polygonMumbai } from 'wagmi/chains';
 import { infuraProvider } from 'wagmi/providers/infura';
+import { publicProvider } from 'wagmi/providers/public';
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
-import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 
 // Get environment variables
@@ -15,11 +15,11 @@ const getChains = () => {
   const environment = import.meta.env.VITE_ENVIRONMENT;
   
   if (environment === 'development') {
-    return [hardhat, sepolia]; // Include both for development
+    return [sepolia, polygonMumbai]; // Include testnets for development
   } else if (environment === 'testnet') {
-    return [sepolia];
+    return [sepolia, polygonMumbai];
   } else if (environment === 'production') {
-    return [mainnet];
+    return [mainnet, polygon];
   } else {
     // Default to sepolia testnet if no environment is set
     return [sepolia];
@@ -34,24 +34,12 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
   ]
 );
 
-// Configure connectors
+// Create connectors
 const connectors = [
   new MetaMaskConnector({
     chains,
     options: {
       shimDisconnect: true,
-    },
-  }),
-  new WalletConnectConnector({
-    chains,
-    options: {
-      projectId: walletConnectProjectId || 'default-project-id',
-      metadata: {
-        name: 'Strategic Crypto Save',
-        description: 'A decentralized savings platform for cryptocurrency',
-        url: 'https://strategiccryptosave.com',
-        icons: ['https://strategiccryptosave.com/icon.png'],
-      },
     },
   }),
   new InjectedConnector({
@@ -71,4 +59,7 @@ export const wagmiConfig = createConfig({
   webSocketPublicClient,
 });
 
-export { chains };
+// Export project ID for Web3Modal initialization in WalletProvider
+export const projectId = walletConnectProjectId || 'd77f88a21bd9ea69547c2b23b71953ef';
+
+export { chains, sepolia };

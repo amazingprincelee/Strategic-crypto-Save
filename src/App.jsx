@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiConfig } from 'wagmi';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -9,6 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import AuthInitializer from './components/Auth/AuthInitializer';
+import WalletProvider from './components/Web3/WalletProvider';
 
 // Pages
 import Home from './pages/Home';
@@ -19,9 +19,6 @@ import CreateVault from './pages/CreateVault';
 import VaultDetails from './pages/VaultDetails';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
-
-// Wagmi configuration
-import { wagmiConfig } from './config/wagmi';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -38,7 +35,7 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <WagmiConfig config={wagmiConfig}>
+      <WalletProvider>
         <AuthInitializer>
           <Router>
                 <div className="min-h-screen bg-gray-50 dark:bg-brandDark-900 transition-colors duration-300">
@@ -79,7 +76,7 @@ function App() {
                 </div>
           </Router>
         </AuthInitializer>
-      </WagmiConfig>
+      </WalletProvider>
     </QueryClientProvider>
   );
 }
