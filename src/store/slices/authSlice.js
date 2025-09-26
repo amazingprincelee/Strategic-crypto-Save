@@ -10,9 +10,9 @@ export const loginUser = createAsyncThunk(
       const response = await authAPI.login({ email, password });
       
       if (response.data.success) {
-        const { token, user } = response.data;
-        localStorage.setItem('authToken', token);
-        return { token, user };
+        const { user, tokens } = response.data.data;
+        localStorage.setItem('token', tokens.accessToken);
+        return { token: tokens.accessToken, user };
       } else {
         return rejectWithValue('Invalid email or password');
       }
@@ -35,8 +35,26 @@ export const registerUser = createAsyncThunk(
         return rejectWithValue('Registration failed');
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed. Please try again.';
-      return rejectWithValue(message);
+      const errorData = error.response?.data;
+      
+      // Handle validation errors with detailed field information
+      if (errorData?.errors && Array.isArray(errorData.errors)) {
+        const validationErrors = errorData.errors.map(err => `${err.field}: ${err.message}`).join(', ');
+        return rejectWithValue({
+          type: 'validation',
+          message: errorData.message || 'Validation failed',
+          details: errorData.errors,
+          formattedMessage: validationErrors
+        });
+      }
+      
+      // Handle general errors
+      const message = errorData?.message || 'Registration failed. Please try again.';
+      return rejectWithValue({
+        type: 'general',
+        message,
+        formattedMessage: message
+      });
     }
   }
 );
@@ -45,7 +63,7 @@ export const checkAuth = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       if (!token) {
         return rejectWithValue('No token found');
       }
@@ -53,13 +71,13 @@ export const checkAuth = createAsyncThunk(
       const response = await userAPI.getProfile();
       
       if (response.data.success) {
-        return { user: response.data.user, token };
+        return { user: response.data.data.user, token };
       } else {
-        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
         return rejectWithValue('Token invalid');
       }
     } catch (error) {
-      localStorage.removeItem('authToken');
+      localStorage.removeItem('token');
       return rejectWithValue('Authentication check failed');
     }
   }
@@ -72,7 +90,7 @@ export const updateUserProfile = createAsyncThunk(
       const response = await userAPI.updateProfile(userData);
       
       if (response.data.success) {
-        return response.data.user;
+        return response.data.data.user;
       } else {
         return rejectWithValue('Profile update failed');
       }
@@ -85,9 +103,9 @@ export const updateUserProfile = createAsyncThunk(
 
 const initialState = {
   user: null,
-  token: localStorage.getItem('authToken'),
+  token: localStorage.getItem('token'),
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: !!localStorage.getItem('token'), // Set loading to true if token exists
   error: null,
 };
 
@@ -96,7 +114,7 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     logout: (state) => {
-      localStorage.removeItem('authToken');
+      localStorage.removeItem('token');
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
@@ -144,8 +162,15 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
-        toast.error(action.payload);
+        const errorPayload = action.payload;
+        
+        if (typeof errorPayload === 'object' && errorPayload.formattedMessage) {
+          state.error = errorPayload;
+          toast.error(errorPayload.formattedMessage);
+        } else {
+          state.error = { type: 'general', message: errorPayload, formattedMessage: errorPayload };
+          toast.error(errorPayload);
+        }
       })
       
       // Check auth cases

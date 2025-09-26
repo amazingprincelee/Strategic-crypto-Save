@@ -12,11 +12,13 @@ import {
   ExternalLink,
   Loader2
 } from 'lucide-react';
-import { useWallet } from '../contexts/WalletContext';
+import { useAccount, useBalance } from 'wagmi';
 import { dashboardAPI, vaultAPI } from '../services/api';
 
 const Dashboard = () => {
-  const { address, formattedBalance } = useWallet();
+  const { address } = useAccount();
+  const { data: balance } = useBalance({ address });
+  const formattedBalance = balance ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}` : '0.0000 ETH';
 
   // Fetch dashboard data
   const { data: dashboardData, isLoading: isDashboardLoading, error: dashboardError } = useQuery({

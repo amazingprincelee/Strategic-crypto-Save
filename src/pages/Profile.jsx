@@ -4,23 +4,22 @@ import {
   User, 
   Settings, 
   Shield, 
-  Bell, 
-  Moon, 
-  Sun,
+  Bell,
   Wallet,
   Activity,
   Download,
   ExternalLink
 } from 'lucide-react';
 import { logout } from '../store/slices/authSlice';
-import { useWallet } from '../contexts/WalletContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useAccount, useBalance, useDisconnect } from 'wagmi';
 
 const Profile = () => {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
-  const { address, formattedBalance, disconnect } = useWallet();
-  const { theme, toggleTheme } = useTheme();
+  const { address } = useAccount();
+  const { data: balance } = useBalance({ address });
+  const { disconnect } = useDisconnect();
+  const formattedBalance = balance ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}` : '0.0000 ETH';
   const [activeTab, setActiveTab] = useState('profile');
 
   const tabs = [
@@ -31,7 +30,7 @@ const Profile = () => {
   ];
 
   const handleDisconnectWallet = async () => {
-    await disconnect();
+    disconnect();
     dispatch(logout());
   };
 
@@ -178,36 +177,6 @@ const Profile = () => {
 
         {activeTab === 'settings' && (
           <div className="space-y-6">
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Appearance
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      Dark Mode
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Toggle between light and dark themes
-                    </p>
-                  </div>
-                  <button
-                    onClick={toggleTheme}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      theme === 'dark' ? 'bg-primary-600' : 'bg-gray-200'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-
             <div className="card">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Data & Privacy

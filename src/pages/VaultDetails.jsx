@@ -15,14 +15,14 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useAccount } from 'wagmi';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 import { vaultDetailsAPI } from '../services/api';
-import { useWallet } from '../contexts/WalletContext';
 
 const VaultDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { account } = useWallet();
+  const { address: account } = useAccount();
   const queryClient = useQueryClient();
   // Fetch vault details
   const { data: vaultData, isLoading: vaultLoading, error: vaultError } = useQuery({

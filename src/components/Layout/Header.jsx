@@ -8,12 +8,12 @@ import {
   Settings, 
   ChevronDown, 
   Menu, 
-  X, 
-  Sun, 
-  Moon
+  X,
+  Moon,
+  Sun
 } from 'lucide-react';
-import { useTheme } from '../../contexts/ThemeContext';
 import { logout } from '../../store/slices/authSlice';
+import { useTheme } from '../../store/useTheme';
 import NotificationDropdown from '../Notifications/NotificationDropdown';
 
 const Header = () => {
@@ -23,9 +23,9 @@ const Header = () => {
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
-  const { theme, isDark, setTheme } = useTheme();
+
   const { isAuthenticated, user } = useSelector(state => state.auth);
+  const { theme, toggleTheme, isDark } = useTheme();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -78,51 +78,17 @@ const Header = () => {
             {/* Right Side Actions */}
             <div className="flex items-center space-x-4">
               {/* Theme Toggle */}
-              <div className="relative">
-                <button
-                onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-brandDark-700 hover:bg-gray-200 dark:hover:bg-brandDark-600 transition-colors"
-                aria-label="Toggle theme"
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-brandDark-700 transition-colors"
+                title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
               >
-                  {theme === 'light' ? (
-                    <Sun className="w-5 h-5 text-yellow-500" />
-                  ) : theme === 'dark' ? (
-                    <Moon className="w-5 h-5 text-blue-400" />
-                  ) : (
-                    <Palette className="w-5 h-5 text-purple-400" />
-                  )}
-                </button>
-
-                {/* Theme Dropdown */}
-                {isThemeDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-brandDark-800 rounded-lg shadow-lg border border-gray-200 dark:border-brandDark-700 py-2 z-50">
-                    <button
-                      onClick={() => {
-                        setTheme('light');
-                        setIsThemeDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center space-x-2 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-brandDark-700 transition-colors ${
-                        theme === 'light' ? 'bg-gray-100 dark:bg-brandDark-700' : ''
-                      }`}
-                    >
-                      <Sun className="w-4 h-4 text-yellow-500" />
-                      <span className="text-gray-900 dark:text-white">Light</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTheme('dark');
-                        setIsThemeDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center space-x-2 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-brandDark-700 transition-colors ${
-                        theme === 'dark' ? 'bg-gray-100 dark:bg-brandDark-700' : ''
-                      }`}
-                    >
-                      <Moon className="w-4 h-4 text-blue-400" />
-                      <span className="text-gray-900 dark:text-white">Dark</span>
-                    </button>
-                  </div>
+                {isDark ? (
+                  <Sun className="w-5 h-5 text-yellow-500" />
+                ) : (
+                  <Moon className="w-5 h-5 text-brandDark-600 dark:text-gray-300" />
                 )}
-              </div>
+              </button>
 
               {/* Notifications */}
               {isAuthenticated && <NotificationDropdown />}

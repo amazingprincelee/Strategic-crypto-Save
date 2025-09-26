@@ -14,7 +14,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useWallet } from '../contexts/WalletContext';
+import { useAccount, useBalance } from 'wagmi';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const schema = yup.object({
@@ -38,7 +38,9 @@ const schema = yup.object({
 
 const CreateVault = () => {
   const navigate = useNavigate();
-  const { address, formattedBalance } = useWallet();
+  const { address } = useAccount();
+  const { data: balance } = useBalance({ address });
+  const formattedBalance = balance ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}` : '0.0000 ETH';
   const { isAuthenticated } = useSelector((state) => state.auth);
   const [isCreating, setIsCreating] = useState(false);
   const [estimatedGas, setEstimatedGas] = useState(null);

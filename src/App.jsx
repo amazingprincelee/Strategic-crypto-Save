@@ -5,10 +5,6 @@ import { WagmiConfig } from 'wagmi';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Providers
-import { ThemeProvider } from './contexts/ThemeContext';
-import { WalletProvider } from './contexts/WalletContext';
-
 // Components
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -43,10 +39,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <WagmiConfig config={wagmiConfig}>
-        <ThemeProvider>
-          <WalletProvider>
-            <AuthInitializer>
-              <Router>
+        <AuthInitializer>
+          <Router>
                 <div className="min-h-screen bg-gray-50 dark:bg-brandDark-900 transition-colors duration-300">
                 <Routes>
                   {/* Public Routes */}
@@ -83,10 +77,8 @@ function App() {
                     className="mt-16"
                   />
                 </div>
-              </Router>
-            </AuthInitializer>
-          </WalletProvider>
-        </ThemeProvider>
+          </Router>
+        </AuthInitializer>
       </WagmiConfig>
     </QueryClientProvider>
   );

@@ -1,14 +1,14 @@
 import React from 'react';
 import { X, Wallet, ExternalLink } from 'lucide-react';
-import { useWallet } from '../../contexts/WalletContext';
+import { useConnect } from 'wagmi';
 
 const WalletConnectModal = ({ isOpen, onClose }) => {
-  const { connectors, connectWallet, isConnecting } = useWallet();
+  const { connectors, connect, isPending } = useConnect();
 
   if (!isOpen) return null;
 
-  const handleConnectorClick = async (connectorId) => {
-    await connectWallet(connectorId);
+  const handleConnectorClick = async (connector) => {
+    connect({ connector });
     onClose();
   };
 
@@ -85,8 +85,8 @@ const WalletConnectModal = ({ isOpen, onClose }) => {
             {connectors.map((connector) => (
               <button
                 key={connector.id}
-                onClick={() => handleConnectorClick(connector.id)}
-                disabled={isConnecting}
+                onClick={() => handleConnectorClick(connector)}
+                disabled={isPending}
                 className="w-full flex items-center justify-between p-4 border border-gray-200 dark:border-brandDark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-brandDark-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="flex items-center space-x-3">
@@ -108,7 +108,7 @@ const WalletConnectModal = ({ isOpen, onClose }) => {
           </div>
 
           {/* Loading State */}
-          {isConnecting && (
+          {isPending && (
             <div className="mt-4 flex items-center justify-center">
               <div className="spinner w-6 h-6" />
               <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
