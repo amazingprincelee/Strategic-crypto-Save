@@ -1,14 +1,12 @@
 import { createConfig, configureChains } from 'wagmi';
 import { mainnet, sepolia, hardhat } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
-import { alchemyProvider } from 'wagmi/providers/alchemy';
 import { infuraProvider } from 'wagmi/providers/infura';
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
 import { InjectedConnector } from 'wagmi/connectors/injected';
 
 // Get environment variables
-const alchemyApiKey = import.meta.env.VITE_ALCHEMY_API_KEY;
 const infuraApiKey = import.meta.env.VITE_INFURA_API_KEY;
 const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
@@ -31,9 +29,8 @@ const getChains = () => {
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   getChains(),
   [
-    ...(alchemyApiKey ? [alchemyProvider({ apiKey: alchemyApiKey })] : []),
     ...(infuraApiKey ? [infuraProvider({ apiKey: infuraApiKey })] : []),
-    publicProvider(),
+    publicProvider(), // Fallback provider
   ]
 );
 
