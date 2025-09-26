@@ -1,0 +1,159 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Custom button styles */
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 inline-flex items-center justify-center gap-2 min-h-[44px] text-center;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-600 hover:bg-gray-700 text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 inline-flex items-center justify-center gap-2 min-h-[44px] text-center;
+  }
+  
+  .btn-outline {
+    @apply border border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 inline-flex items-center justify-center gap-2 min-h-[44px] text-center;
+  }
+  
+  .btn-ghost {
+    @apply text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-brandDark-700 font-medium py-2.5 px-6 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 inline-flex items-center justify-center gap-2 min-h-[44px] text-center;
+  }
+  
+  /* Button size variants */
+  .btn-sm {
+    @apply py-2 px-4 text-sm min-h-[36px];
+  }
+  
+  .btn-lg {
+    @apply py-3 px-8 text-lg min-h-[52px];
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white dark:bg-brandDark-800 rounded-xl shadow-lg border border-gray-200 dark:border-brandDark-700 p-6;
+  }
+  
+  .card-hover {
+    @apply card hover:shadow-xl transition-shadow duration-300;
+  }
+  
+  /* Input styles */
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-brandDark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400;
+  }
+  
+  /* Gradient backgrounds */
+  .gradient-primary {
+    @apply bg-gradient-to-r from-primary-600 to-primary-700;
+  }
+  
+  .gradient-secondary {
+    @apply bg-gradient-to-r from-gray-600 to-gray-700;
+  }
+  
+  .gradient-accent {
+    @apply bg-gradient-to-r from-red-500 to-red-600;
+  }
+  
+  /* Loading spinner */
+  .spinner {
+    @apply animate-spin rounded-full border-2 border-gray-300 border-t-primary-600;
+  }
+  
+  /* Wallet connection styles */
+  .wallet-button {
+    @apply flex items-center space-x-2 bg-white dark:bg-brandDark-800 border border-gray-300 dark:border-brandDark-600 rounded-lg px-4 py-2 hover:bg-gray-50 dark:hover:bg-brandDark-700 transition-colors duration-200;
+  }
+  
+  /* Vault card styles */
+  .vault-card {
+    @apply card-hover border-l-4 border-l-primary-500;
+  }
+  
+  .vault-card.unlocked {
+    @apply border-l-green-500;
+  }
+  
+  .vault-card.locked {
+    @apply border-l-red-500;
+  }
+  
+  /* Status badges */
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-active {
+    @apply status-badge bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+  }
+  
+  .status-locked {
+    @apply status-badge bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+  }
+  
+  .status-unlocked {
+    @apply status-badge bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Theme mode variables */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --border: 214.3 31.8% 91.4%;
+}
+
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+}
+
+
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-brandDark-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 dark:bg-brandDark-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500 dark:bg-brandDark-500;
+}
