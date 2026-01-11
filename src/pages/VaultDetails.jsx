@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDispatch, useSelector } from 'react-redux';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -16,42 +16,58 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAccount } from 'wagmi';
-import LoadingSpinner from '../components/UI/LoadingSpinner';
-import { vaultDetailsAPI } from '../services/api';
+import { 
+  fetchVaultById, 
+  fetchUserVaultStats, 
+  withdrawFromVault,
+  clearVaultMessages 
+} from '../redux/slices/vaultSlice';
 
 const VaultDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { address: account } = useAccount();
-  const queryClient = useQueryClient();
-  // Fetch vault details
-  const { data: vaultData, isLoading: vaultLoading, error: vaultError } = useQuery({
-    queryKey: ['vault', id],
-    queryFn: () => vaultDetailsAPI.getById(id),
-    enabled: !!id,
-  });
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
-  // Fetch user vault stats for additional transaction data
-  const { data: statsData, isLoading: statsLoading } = useQuery({
-    queryKey: ['vaultStats', account],
-    queryFn: () => vaultDetailsAPI.getUserStats(account),
-    enabled: !!account,
-  });
-
-  const vault = vaultData?.data?.vault;
-  const recentActivity = statsData?.data?.recentActivity || [];
-  
-  // Filter transactions for this specific vault
-  const vaultTransactions = recentActivity.filter(activity => 
-    activity.vaultId === parseInt(id)
+  // Get data from Redux store
+  const { currentVault: vault, userStats, loading, error, successMessage } = useSelector(
+    (state) => state.vault
   );
 
+  // Fetch vault details on mount
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchVaultById(id));
+    }
+    if (account) {
+      dispatch(fetchUserVaultStats(account));
+    }
+  }, [dispatch, id, account]);
+
+  // Handle success/error messages
+  useEffect(() => {
+    if (successMessage) {
+      toast.success(successMessage);
+      dispatch(clearVaultMessages());
+    }
+    if (error) {
+      toast.error(error);
+      dispatch(clearVaultMessages());
+    }
+  }, [successMessage, error, dispatch]);
+
+  // Filter transactions for this specific vault
+  const vaultTransactions = userStats.recentActivity?.filter(activity => 
+    activity.vaultId === parseInt(id)
+  ) || [];
+
   // Loading state
-  if (vaultLoading) {
+  if (loading.vault) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-brandPrimary-600 mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-brandPrimary-600" />
           <p className="text-gray-600 dark:text-gray-400">Loading vault details...</p>
         </div>
       </div>
@@ -59,15 +75,15 @@ const VaultDetails = () => {
   }
 
   // Error state
-  if (vaultError || !vault) {
+  if (!vault && !loading.vault) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+          <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
             Vault Not Found
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <p className="mb-4 text-gray-600 dark:text-gray-400">
             The vault you're looking for doesn't exist or you don't have access to it.
           </p>
           <button
@@ -90,13 +106,18 @@ const VaultDetails = () => {
     try {
       setIsWithdrawing(true);
       
-      // This would typically involve blockchain interaction
-      // For now, we'll show a message that this requires blockchain integration
-      toast.info('Withdrawal requires blockchain interaction. This feature will be available when connected to the blockchain.');
-      setShowWithdrawModal(false);
+      // Dispatch withdraw action
+      await dispatch(withdrawFromVault({ 
+        vaultId: vault.vaultId, 
+        amount: vault.balance 
+      })).unwrap();
+      
+      // Refresh vault data
+      dispatch(fetchVaultById(id));
+      
     } catch (error) {
       console.error('Withdrawal error:', error);
-      toast.error('Withdrawal failed. Please try again.');
+      // Error toast is handled by useEffect
     } finally {
       setIsWithdrawing(false);
     }
@@ -123,13 +144,17 @@ const VaultDetails = () => {
     });
   };
 
+  if (!vault) {
+    return null;
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-brandDark-700 rounded-lg transition-colors"
+          className="p-2 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-brandDark-700"
         >
           <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </button>
@@ -137,7 +162,7 @@ const VaultDetails = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Vault #{vault.vaultId}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="mt-1 text-gray-600 dark:text-gray-400">
             {vault.tokenSymbol} Savings Vault
           </p>
         </div>
@@ -146,16 +171,16 @@ const VaultDetails = () => {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Vault Overview */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+            <h2 className="mb-6 text-xl font-semibold text-gray-900 dark:text-white">
               Vault Overview
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -218,7 +243,7 @@ const VaultDetails = () => {
 
           {/* Progress */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
               Lock Period Progress
             </h3>
             
@@ -232,9 +257,9 @@ const VaultDetails = () => {
                 </span>
               </div>
               
-              <div className="w-full bg-gray-200 dark:bg-dark-600 rounded-full h-3">
+              <div className="w-full h-3 bg-gray-200 rounded-full dark:bg-dark-600">
                 <div
-                  className="bg-gradient-to-r from-brandPrimary-500 to-brandSecondary-500 h-3 rounded-full transition-all duration-300"
+                  className="h-3 transition-all duration-300 rounded-full bg-gradient-to-r from-brandPrimary-500 to-brandSecondary-500"
                   style={{ width: `${Math.max(0, Math.min(100, ((vault.lockDurationDays - vault.daysUntilUnlock) / vault.lockDurationDays) * 100))}%` }}
                 />
               </div>
@@ -249,7 +274,7 @@ const VaultDetails = () => {
 
           {/* Transaction History */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
               Transaction History
             </h3>
             
@@ -258,7 +283,7 @@ const VaultDetails = () => {
                 vaultTransactions.map((tx) => (
                   <div
                     key={tx._id}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg"
+                    className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-dark-700"
                   >
                     <div className="flex items-center space-x-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -273,7 +298,7 @@ const VaultDetails = () => {
                         )}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white capitalize">
+                        <p className="font-medium text-gray-900 capitalize dark:text-white">
                           {tx.type}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -288,7 +313,7 @@ const VaultDetails = () => {
                       </p>
                       <div className="flex items-center space-x-2">
                         <CheckCircle className="w-3 h-3 text-green-500" />
-                        <span className="text-xs text-green-600 dark:text-green-400 capitalize">
+                        <span className="text-xs text-green-600 capitalize dark:text-green-400">
                           {tx.status}
                         </span>
                       </div>
@@ -296,8 +321,8 @@ const VaultDetails = () => {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8">
-                  <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <div className="py-8 text-center">
+                  <Clock className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <p className="text-gray-500 dark:text-gray-400">No transactions yet</p>
                 </div>
               )}
@@ -309,7 +334,7 @@ const VaultDetails = () => {
         <div className="space-y-6">
           {/* Actions */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
               Actions
             </h3>
             
@@ -317,13 +342,23 @@ const VaultDetails = () => {
               {vault.isUnlocked ? (
                 <button
                   onClick={handleWithdraw}
-                  className="btn-primary w-full"
+                  disabled={isWithdrawing || loading.action}
+                  className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Unlock className="w-4 h-4" />
-                  <span>Withdraw Funds</span>
+                  {isWithdrawing || loading.action ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="w-4 h-4" />
+                      <span>Withdraw Funds</span>
+                    </>
+                  )}
                 </button>
               ) : (
-                <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="p-3 border border-yellow-200 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800">
                   <div className="flex items-start space-x-2">
                     <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                     <div>
@@ -338,33 +373,35 @@ const VaultDetails = () => {
                 </div>
               )}
               
-              <button className="btn-secondary w-full">
+              <button className="w-full btn-secondary">
                 <Download className="w-4 h-4" />
                 <span>Export Data</span>
               </button>
               
-              <a
-                href={`https://etherscan.io/tx/${vault.transactionHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary w-full"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>View on Etherscan</span>
-              </a>
+              {vault.transactionHash && (
+                <a
+                  href={`https://etherscan.io/tx/${vault.transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full btn-secondary"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>View on Etherscan</span>
+                </a>
+              )}
             </div>
           </div>
 
           {/* Vault Details */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
               Vault Details
             </h3>
             
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Vault ID:</span>
-                <span className="text-gray-900 dark:text-white font-mono">#{vault.vaultId}</span>
+                <span className="font-mono text-gray-900 dark:text-white">#{vault.vaultId}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Created:</span>
@@ -376,7 +413,7 @@ const VaultDetails = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Token:</span>
-                <span className="text-gray-900 dark:text-white font-mono text-xs">
+                <span className="font-mono text-xs text-gray-900 dark:text-white">
                   {vault.tokenSymbol}
                 </span>
               </div>
@@ -384,8 +421,6 @@ const VaultDetails = () => {
           </div>
         </div>
       </div>
-
-
     </div>
   );
 };

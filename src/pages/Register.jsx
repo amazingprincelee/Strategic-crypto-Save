@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { registerUser } from '../store/slices/authSlice';
+import { registerUser } from '../redux/slices/authSlice';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const schema = yup.object({
@@ -39,9 +39,10 @@ const schema = yup.object({
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const dispatch = useAppDispatch();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  
+  const { loading, error } = useSelector((state) => state.auth);
 
   const {
     register,
@@ -51,18 +52,12 @@ const Register = () => {
     resolver: yupResolver(schema),
   });
 
-  const onSubmit = async (data, event) => {
-    if (event) {
-      event.preventDefault();
-    }
-    
+  const onSubmit = async (data) => {
     try {
-      // Remove walletAddress from the data since we're not using it for registration
-      const { walletAddress, ...registrationData } = data;
-      const result = await dispatch(registerUser(registrationData));
-      if (registerUser.fulfilled.match(result)) {
-        navigate('/login');
-      }
+      // Remove confirmPassword and acceptTerms from the data sent to backend
+      const { confirmPassword, acceptTerms, ...registrationData } = data;
+      await dispatch(registerUser(registrationData)).unwrap();
+      navigate('/login');
     } catch (error) {
       // Error is handled by the Redux slice
       console.error('Registration error:', error);
@@ -70,8 +65,8 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-brandDark-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="flex items-center justify-center min-h-screen px-4 py-12 bg-gray-50 dark:bg-brandDark-900 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
@@ -91,14 +86,14 @@ const Register = () => {
                 Full Name
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <User className="w-5 h-5 text-gray-400" />
                 </div>
                 <input
                   {...register('fullName')}
                   type="text"
                   autoComplete="name"
-                  className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-brandDark-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-brandDark-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="relative block w-full px-3 py-3 pl-10 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-lg appearance-none dark:border-brandDark-600 dark:placeholder-gray-400 dark:text-white dark:bg-brandDark-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Full Name"
                 />
               </div>
@@ -115,14 +110,14 @@ const Register = () => {
                 Email address
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Mail className="w-5 h-5 text-gray-400" />
                 </div>
                 <input
                   {...register('email')}
                   type="email"
                   autoComplete="email"
-                  className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-brandDark-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-brandDark-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="relative block w-full px-3 py-3 pl-10 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-lg appearance-none dark:border-brandDark-600 dark:placeholder-gray-400 dark:text-white dark:bg-brandDark-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
                 />
               </div>
@@ -133,33 +128,31 @@ const Register = () => {
               )}
             </div>
 
-
-
             {/* Password Field */}
             <div>
               <label htmlFor="password" className="sr-only">
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Lock className="w-5 h-5 text-gray-400" />
                 </div>
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  className="appearance-none relative block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 dark:border-brandDark-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-brandDark-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="relative block w-full px-3 py-3 pl-10 pr-10 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-lg appearance-none dark:border-brandDark-600 dark:placeholder-gray-400 dark:text-white dark:bg-brandDark-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <EyeOff className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <Eye className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                   )}
                 </button>
               </div>
@@ -176,25 +169,25 @@ const Register = () => {
                 Confirm Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Lock className="w-5 h-5 text-gray-400" />
                 </div>
                 <input
                   {...register('confirmPassword')}
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  className="appearance-none relative block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 dark:border-brandDark-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-brandDark-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="relative block w-full px-3 py-3 pl-10 pr-10 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-lg appearance-none dark:border-brandDark-600 dark:placeholder-gray-400 dark:text-white dark:bg-brandDark-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Confirm Password"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <EyeOff className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <Eye className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                   )}
                 </button>
               </div>
@@ -212,17 +205,17 @@ const Register = () => {
               <input
                 {...register('acceptTerms')}
                 type="checkbox"
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-brandDark-800"
+                className="w-4 h-4 bg-white border-gray-300 rounded text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-brandDark-800"
               />
             </div>
             <div className="ml-3 text-sm">
               <label className="text-gray-700 dark:text-gray-300">
                 I agree to the{' '}
-                <a href="#" className="text-primary-600 hover:text-primary-500 font-medium">
+                <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
                   Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="#" className="text-primary-600 hover:text-primary-500 font-medium">
+                <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
                   Privacy Policy
                 </a>
               </label>
@@ -236,13 +229,13 @@ const Register = () => {
 
           {/* Error Display */}
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+            <div className="p-3 border border-red-200 rounded-lg bg-red-50 dark:bg-red-900/20 dark:border-red-800">
               {typeof error === 'object' && error.type === 'validation' && error.details ? (
                 <div>
-                  <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-2">
+                  <p className="mb-2 text-sm font-medium text-red-600 dark:text-red-400">
                     {error.message}
                   </p>
-                  <ul className="text-sm text-red-600 dark:text-red-400 space-y-1">
+                  <ul className="space-y-1 text-sm text-red-600 dark:text-red-400">
                     {error.details.map((err, index) => (
                       <li key={index} className="flex items-start">
                         <span className="inline-block w-2 h-2 bg-red-400 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
@@ -263,15 +256,15 @@ const Register = () => {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={loading}
+              className="relative flex justify-center w-full px-4 py-3 text-sm font-medium text-white transition-colors border border-transparent rounded-lg group bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? (
+              {loading ? (
                 <LoadingSpinner size="small" />
               ) : (
                 <>
                   Create Account
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </>
               )}
             </button>
@@ -283,7 +276,7 @@ const Register = () => {
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="font-medium text-primary-600 hover:text-primary-500 transition-colors"
+                className="font-medium transition-colors text-primary-600 hover:text-primary-500"
               >
                 Sign in here
               </Link>

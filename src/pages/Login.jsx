@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { loginUser } from '../store/slices/authSlice';
+import { loginUser } from '../redux/slices/authSlice';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const schema = yup.object({
@@ -21,9 +21,10 @@ const schema = yup.object({
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const dispatch = useAppDispatch();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  
+  const { loading, error } = useSelector((state) => state.auth);
 
   const {
     register,
@@ -33,25 +34,26 @@ const Login = () => {
     resolver: yupResolver(schema),
   });
 
-  const onSubmit = async (data, event) => {
-    if (event) {
-      event.preventDefault();
-    }
+  const onSubmit = async (data) => {
+    console.log('Login form submitted');
     
     try {
-      const result = await dispatch(loginUser(data));
-      if (loginUser.fulfilled.match(result)) {
-        navigate('/dashboard');
-      }
+      console.log('Dispatching loginUser...');
+      await dispatch(loginUser(data)).unwrap();
+      console.log('Login successful, navigating to dashboard');
+      // Only navigate on successful login
+      navigate('/dashboard');
     } catch (error) {
-      // Error is handled by the Redux slice
-      console.error('Login error:', error);
+      // Error is handled by the Redux slice (toast + state update)
+      console.error('Login failed, staying on login page. Error:', error);
+      // Stay on login page - error will be displayed
+      // Don't need to do anything else here
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-brandDark-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="flex items-center justify-center min-h-screen px-4 py-12 bg-gray-50 dark:bg-brandDark-900 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
@@ -71,14 +73,14 @@ const Login = () => {
                 Email address
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Mail className="w-5 h-5 text-gray-400" />
                 </div>
                 <input
                   {...register('email')}
                   type="email"
                   autoComplete="email"
-                  className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 dark:border-brandDark-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-brandDark-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="relative block w-full px-3 py-3 pl-10 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-lg appearance-none dark:border-brandDark-600 dark:placeholder-gray-400 dark:text-white dark:bg-brandDark-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
                 />
               </div>
@@ -95,25 +97,25 @@ const Login = () => {
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Lock className="w-5 h-5 text-gray-400" />
                 </div>
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  className="appearance-none relative block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 dark:border-brandDark-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-brandDark-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  className="relative block w-full px-3 py-3 pl-10 pr-10 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-lg appearance-none dark:border-brandDark-600 dark:placeholder-gray-400 dark:text-white dark:bg-brandDark-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <EyeOff className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <Eye className="w-5 h-5 text-gray-400 hover:text-gray-600" />
                   )}
                 </button>
               </div>
@@ -125,10 +127,22 @@ const Login = () => {
             </div>
           </div>
 
+          {/* Forgot Password Link */}
+          <div className="flex items-center justify-end">
+            <Link
+              to="/forgot-password"
+              className="text-sm font-medium transition-colors text-primary-600 hover:text-primary-500"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           {/* Error Display */}
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <div className="p-3 border border-red-200 rounded-lg bg-red-50 dark:bg-red-900/20 dark:border-red-800">
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {typeof error === 'object' ? error.formattedMessage || error.message : error}
+              </p>
             </div>
           )}
 
@@ -136,15 +150,15 @@ const Login = () => {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={loading}
+              className="relative flex justify-center w-full px-4 py-3 text-sm font-medium text-white transition-colors border border-transparent rounded-lg group bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? (
+              {loading ? (
                 <LoadingSpinner size="small" />
               ) : (
                 <>
                   Sign In
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </>
               )}
             </button>
@@ -156,7 +170,7 @@ const Login = () => {
               Don't have an account?{' '}
               <Link
                 to="/register"
-                className="font-medium text-primary-600 hover:text-primary-500 transition-colors"
+                className="font-medium transition-colors text-primary-600 hover:text-primary-500"
               >
                 Sign up here
               </Link>

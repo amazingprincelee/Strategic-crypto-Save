@@ -12,18 +12,17 @@ import {
   Moon,
   Sun
 } from 'lucide-react';
-import { logout } from '../../store/slices/authSlice';
-import { useTheme } from '../../store/useTheme';
+import { logout } from '../../redux/slices/authSlice';
+import { useTheme } from '../../redux/useTheme';
 import NotificationDropdown from '../Notifications/NotificationDropdown';
 import ConnectButton from '../Web3/ConnectButton';
 
-const Header = () => {
+const Header = ({ onMenuToggle, isSidebarOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { isAuthenticated, user } = useSelector(state => state.auth);
   const { theme, toggleTheme, isDark } = useTheme();
@@ -41,34 +40,61 @@ const Header = () => {
 
   return (
     <>
-      <header className="bg-white dark:bg-brandDark-900 shadow-lg border-b border-gray-200 dark:border-brandDark-700 sticky top-0 z-50">
-        <div className="container mx-auto px-4">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-lg dark:bg-brandDark-900 dark:border-brandDark-700">
+        <div className="container px-4 mx-auto">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center space-x-3">
-              <img 
-                src="/images/logo.png" 
-                alt="Strategic Crypto Save Logo" 
-                className="w-10 h-10 object-contain"
-              />
-              <span className="text-xl font-bold text-brandDark-900 dark:text-white">
-                Strategic Crypto Save
-              </span>
-            </Link>
+            
+            {/* Left: Mobile Menu Button + Logo */}
+            <div className="flex items-center space-x-3">
+              {/* Mobile Hamburger Menu - Only show when authenticated */}
+              {isAuthenticated && (
+                <button
+                  onClick={onMenuToggle}
+                  className="p-2 text-gray-600 rounded-lg lg:hidden hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-brandDark-700"
+                  aria-label="Toggle menu"
+                >
+                  {isSidebarOpen ? (
+                    <X className="w-6 h-6" />
+                  ) : (
+                    <Menu className="w-6 h-6" />
+                  )}
+                </button>
+              )}
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-6">
+              {/* Logo */}
+              <Link to="/" className="flex items-center space-x-2 sm:space-x-3">
+                <img 
+                  src="/images/logo.png" 
+                  alt="Strategic Crypto Save Logo" 
+                  className="object-contain w-8 h-8 sm:w-10 sm:h-10"
+                />
+                <span className="text-lg font-bold sm:text-xl text-brandDark-900 dark:text-white">
+                  <span className="hidden sm:inline">Strategic Crypto Save</span>
+                  <span className="sm:hidden">SCS</span>
+                </span>
+              </Link>
+            </div>
+
+            {/* Center: Desktop Navigation - Hidden on mobile */}
+            <nav className="items-center hidden space-x-6 md:flex">
               {isAuthenticated && (
                 <>
                   <Link 
                     to="/dashboard" 
-                    className="text-brandDark-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
+                    className="transition-colors text-brandDark-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"
                   >
                     Dashboard
                   </Link>
                   <Link 
+                    to="/arbitrage" 
+                    className="relative transition-colors text-brandDark-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"
+                  >
+                    Arbitrage
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  </Link>
+                  <Link 
                     to="/create-vault" 
-                    className="text-brandDark-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
+                    className="transition-colors text-brandDark-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"
                   >
                     Create Vault
                   </Link>
@@ -77,14 +103,16 @@ const Header = () => {
             </nav>
 
             {/* Right Side Actions */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               {/* Wallet Connect */}
-              <ConnectButton isAuthenticated={isAuthenticated} />
+              <div className="hidden sm:block">
+                <ConnectButton isAuthenticated={isAuthenticated} />
+              </div>
               
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-brandDark-700 transition-colors"
+                className="p-2 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-brandDark-700"
                 title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
               >
                 {isDark ? (
@@ -94,92 +122,98 @@ const Header = () => {
                 )}
               </button>
 
-              {/* Notifications */}
-              {isAuthenticated && <NotificationDropdown />}
+              {/* Notifications - Hidden on small mobile */}
+              {isAuthenticated && (
+                <div className="hidden sm:block">
+                  <NotificationDropdown />
+                </div>
+              )}
 
               {/* User Profile */}
               {isAuthenticated && (
                 <div className="relative">
                   <button
                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-brandDark-700 transition-colors"
+                    className="flex items-center space-x-2 text-brandDark-700 dark:text-gray-300"
                   >
-                    <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
+                    <div className="flex items-center justify-center w-8 h-8 text-white rounded-full bg-gradient-to-br from-primary-500 to-secondary-500">
+                      <span className="text-sm font-semibold">
+                        {user?.profile?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                      </span>
                     </div>
+                    <span className="hidden text-sm font-medium md:block">
+                      {user?.profile?.firstName || 'User'}
+                    </span>
+                    <ChevronDown className="hidden w-4 h-4 md:block" />
                   </button>
 
-                  {/* Profile Dropdown */}
+                  {/* User Dropdown Menu */}
                   {isUserDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-brandDark-800 rounded-lg shadow-lg border border-gray-200 dark:border-brandDark-700 py-2">
-                      <div className="px-4 py-2 border-b border-gray-200 dark:border-brandDark-700">
-                        <p className="text-sm font-medium text-brandDark-900 dark:text-white">
-                          {user?.username || user?.email || 'User'}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {user?.email}
-                        </p>
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                      />
+                      <div className="absolute right-0 z-20 w-48 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg dark:bg-brandDark-800 dark:border-brandDark-700">
+                        <div className="px-4 py-3 border-b border-gray-200 dark:border-brandDark-700">
+                          <p className="text-sm font-medium text-brandDark-900 dark:text-white">
+                            {user?.profile?.firstName} {user?.profile?.lastName}
+                          </p>
+                          <p className="text-xs truncate text-brandDark-600 dark:text-gray-400">
+                            {user?.email}
+                          </p>
+                        </div>
+                        <div className="py-1">
+                          <button
+                            onClick={handleProfileClick}
+                            className="flex items-center w-full px-4 py-2 text-sm transition-colors text-brandDark-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-brandDark-700"
+                          >
+                            <User className="w-4 h-4 mr-3" />
+                            Profile
+                          </button>
+                          <Link
+                            to="/settings"
+                            onClick={() => setIsUserDropdownOpen(false)}
+                            className="flex items-center w-full px-4 py-2 text-sm transition-colors text-brandDark-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-brandDark-700"
+                          >
+                            <Settings className="w-4 h-4 mr-3" />
+                            Settings
+                          </Link>
+                        </div>
+                        <div className="py-1 border-t border-gray-200 dark:border-brandDark-700">
+                          <button
+                            onClick={handleLogout}
+                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 transition-colors hover:bg-gray-100 dark:text-red-400 dark:hover:bg-brandDark-700"
+                          >
+                            <LogOut className="w-4 h-4 mr-3" />
+                            Logout
+                          </button>
+                        </div>
                       </div>
-                      
-                      <button
-                        onClick={handleProfileClick}
-                        className="w-full flex items-center space-x-2 px-4 py-2 text-left text-brandDark-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-brandDark-700 transition-colors"
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span>Profile Settings</span>
-                      </button>
-                      
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center space-x-2 px-4 py-2 text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-brandDark-700 transition-colors"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>Logout</span>
-                      </button>
-                    </div>
+                    </>
                   )}
                 </div>
               )}
 
-              {/* Mobile Menu Toggle */}
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-brandDark-700 transition-colors"
-              >
-                {isMobileMenuOpen ? (
-                  <X className="w-5 h-5 text-brandDark-600 dark:text-gray-300" />
-                ) : (
-                  <Menu className="w-5 h-5 text-brandDark-600 dark:text-gray-300" />
-                )}
-              </button>
+              {/* Login/Signup for non-authenticated users */}
+              {!isAuthenticated && (
+                <div className="flex items-center space-x-2">
+                  <Link
+                    to="/login"
+                    className="px-3 py-2 text-sm font-medium transition-colors text-brandDark-700 dark:text-gray-300 hover:text-primary-500"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="px-3 py-2 text-sm font-medium text-white transition-colors rounded-lg bg-primary-600 hover:bg-primary-700"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 dark:border-brandDark-700 py-4">
-              <nav className="flex flex-col space-y-2">
-                {isAuthenticated && (
-                  <>
-                    <Link 
-                      to="/dashboard" 
-                      className="px-4 py-2 text-brandDark-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Dashboard
-                    </Link>
-                    <Link 
-                      to="/create-vault" 
-                      className="px-4 py-2 text-brandDark-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Create Vault
-                    </Link>
-                  </>
-                )}
-              </nav>
-            </div>
-          )}
         </div>
       </header>
     </>

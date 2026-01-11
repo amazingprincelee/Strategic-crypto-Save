@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { 
   Shield, 
   TrendingUp, 
@@ -10,10 +11,10 @@ import {
   Star,
   Users
 } from 'lucide-react';
-import { useAppSelector } from '../store/hooks';
+
 
 const Home = () => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const handleGetStarted = () => {

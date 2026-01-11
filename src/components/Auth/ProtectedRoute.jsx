@@ -1,35 +1,62 @@
-import React, { useEffect } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { checkAuth } from '../../store/slices/authSlice';
-import LoadingSpinner from '../UI/LoadingSpinner';
+import { Navigate, Outlet } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode"; 
+import { logout } from "../../redux/slices/authSlice";
 
-const ProtectedRoute = () => {
+const ProtectedRoute = ({ redirectPath = "/login" }) => {
   const dispatch = useDispatch();
-  const { isAuthenticated, isLoading } = useSelector((state) => state.auth);
+  const { token } = useSelector((state) => state.auth);
+  const [isValid, setIsValid] = useState(true);
 
   useEffect(() => {
-    // Check authentication status on mount
-    if (!isAuthenticated) {
-      dispatch(checkAuth());
+    if (!token) {
+      setIsValid(false);
+      return;
     }
-  }, [dispatch, isAuthenticated]);
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="large" />
-      </div>
-    );
+    // Check token validity
+    const checkTokenValidity = () => {
+      try {
+        const decoded = jwtDecode(token);
+        const currentTime = Date.now();
+        const expirationTime = decoded.exp * 1000;
+
+        // If token is expired
+        if (expirationTime < currentTime) {
+          console.log("Token expired - logging out");
+          dispatch(logout());
+          setIsValid(false);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.log("Invalid token - logging out", error);
+        dispatch(logout());
+        setIsValid(false);
+        return false;
+      }
+    };
+
+    // Check immediately
+    const isTokenValid = checkTokenValidity();
+    if (!isTokenValid) return;
+
+    // Set up interval to check every minute
+    const interval = setInterval(() => {
+      checkTokenValidity();
+    }, 60000); // Check every 60 seconds
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, [token, dispatch]);
+
+  // If no token or invalid token, redirect
+  if (!token || !isValid) {
+    return <Navigate to={redirectPath} replace />;
   }
 
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Render protected content
   return <Outlet />;
 };
 

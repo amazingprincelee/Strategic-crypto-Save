@@ -1,45 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Bell, Check, X, ExternalLink } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { userAPI } from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  fetchNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+} from '../../redux/slices/userSlice';
 
 const NotificationDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const queryClient = useQueryClient();
+  const dispatch = useDispatch();
 
-  // Fetch notifications
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => userAPI.getNotifications({ limit: 10 }),
-    select: (response) => response.data.notifications,
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
+  // Get notifications from Redux store
+  const { notifications, unreadCount, loading } = useSelector((state) => state.user);
 
-  // Mark notification as read mutation
-  const markAsReadMutation = useMutation({
-    mutationFn: userAPI.markNotificationRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
-    },
-  });
-
-  // Mark all as read mutation
-  const markAllAsReadMutation = useMutation({
-    mutationFn: userAPI.markAllNotificationsRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
-    },
-  });
-
-  // Delete notification mutation
-  const deleteNotificationMutation = useMutation({
-    mutationFn: userAPI.deleteNotification,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['notifications']);
-    },
-  });
+  // Fetch notifications on mount
+  useEffect(() => {
+    if (isOpen) {
+      dispatch(fetchNotifications({ limit: 10 }));
+    }
+  }, [isOpen, dispatch]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -53,18 +36,16 @@ const NotificationDropdown = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   const handleMarkAsRead = (notificationId) => {
-    markAsReadMutation.mutate(notificationId);
+    dispatch(markNotificationRead(notificationId));
   };
 
   const handleMarkAllAsRead = () => {
-    markAllAsReadMutation.mutate();
+    dispatch(markAllNotificationsRead());
   };
 
   const handleDeleteNotification = (notificationId) => {
-    deleteNotificationMutation.mutate(notificationId);
+    dispatch(deleteNotification(notificationId));
   };
 
   const getNotificationIcon = (type) => {
@@ -72,13 +53,21 @@ const NotificationDropdown = () => {
       case 'vault_created':
         return '🏦';
       case 'deposit':
+      case 'deposit_confirmed':
         return '💰';
       case 'withdrawal':
+      case 'withdrawal_confirmed':
         return '💸';
       case 'vault_unlocked':
+      case 'vault_matured':
         return '🔓';
       case 'system':
+      case 'system_maintenance':
         return '⚙️';
+      case 'security_alert':
+        return '🔒';
+      case 'announcement':
+        return '📢';
       default:
         return '📢';
     }
@@ -89,13 +78,21 @@ const NotificationDropdown = () => {
       case 'vault_created':
         return 'text-blue-600';
       case 'deposit':
+      case 'deposit_confirmed':
         return 'text-green-600';
       case 'withdrawal':
+      case 'withdrawal_confirmed':
         return 'text-orange-600';
       case 'vault_unlocked':
+      case 'vault_matured':
         return 'text-purple-600';
       case 'system':
+      case 'system_maintenance':
         return 'text-gray-600';
+      case 'security_alert':
+        return 'text-red-600';
+      case 'announcement':
+        return 'text-blue-600';
       default:
         return 'text-blue-600';
     }
@@ -106,11 +103,11 @@ const NotificationDropdown = () => {
       {/* Notification Bell */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg bg-gray-100 dark:bg-dark-700 hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors"
+        className="relative p-2 transition-colors bg-gray-100 rounded-lg dark:bg-dark-700 hover:bg-gray-200 dark:hover:bg-dark-600"
       >
         <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-red-500 rounded-full -top-1 -right-1">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -118,7 +115,7 @@ const NotificationDropdown = () => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 z-50">
+        <div className="absolute right-0 z-50 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg w-80 dark:bg-dark-800 dark:border-dark-700">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-dark-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -127,8 +124,8 @@ const NotificationDropdown = () => {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                disabled={markAllAsReadMutation.isLoading}
+                className="text-sm font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50"
+                disabled={loading.action}
               >
                 Mark all read
               </button>
@@ -136,17 +133,17 @@ const NotificationDropdown = () => {
           </div>
 
           {/* Notifications List */}
-          <div className="max-h-96 overflow-y-auto">
-            {isLoading ? (
+          <div className="overflow-y-auto max-h-96">
+            {loading.notifications ? (
               <div className="p-4 text-center">
-                <div className="spinner w-6 h-6 mx-auto" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                <div className="w-6 h-6 mx-auto border-2 rounded-full spinner border-primary-600 border-t-transparent animate-spin" />
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                   Loading notifications...
                 </p>
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-8 text-center">
-                <Bell className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <Bell className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
                 <p className="text-gray-500 dark:text-gray-400">
                   No notifications yet
                 </p>
@@ -169,10 +166,10 @@ const NotificationDropdown = () => {
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {notification.title}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                           {notification.message}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
                           {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                         </p>
                       </div>
@@ -181,8 +178,9 @@ const NotificationDropdown = () => {
                         {!notification.read && (
                           <button
                             onClick={() => handleMarkAsRead(notification._id)}
-                            className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                            className="p-1 text-gray-400 transition-colors hover:text-green-600 disabled:opacity-50"
                             title="Mark as read"
+                            disabled={loading.action}
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -190,8 +188,9 @@ const NotificationDropdown = () => {
                         
                         <button
                           onClick={() => handleDeleteNotification(notification._id)}
-                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          className="p-1 text-gray-400 transition-colors hover:text-red-600 disabled:opacity-50"
                           title="Delete notification"
+                          disabled={loading.action}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -202,7 +201,7 @@ const NotificationDropdown = () => {
                       <div className="mt-3 ml-8">
                         <a
                           href={notification.actionUrl}
-                          className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                          className="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700"
                         >
                           View Details
                           <ExternalLink className="w-3 h-3 ml-1" />
@@ -220,9 +219,9 @@ const NotificationDropdown = () => {
             <div className="p-4 border-t border-gray-200 dark:border-dark-700">
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                className="w-full text-sm font-medium text-center text-primary-600 hover:text-primary-700"
               >
-                View All Notifications
+                Close
               </button>
             </div>
           )}

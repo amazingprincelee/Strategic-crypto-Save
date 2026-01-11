@@ -1,14 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import CryptoArbitrage from './components/Cryptoarbitrage/Cryptoarbitrage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Components
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
-import AuthInitializer from './components/Auth/AuthInitializer';
 import WalletProvider from './components/Web3/WalletProvider';
+import { SocketProvider } from './components/socket/SocketContext'; 
 
 // Pages
 import Home from './pages/Home';
@@ -35,48 +36,50 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <AuthInitializer>
-          <Router>
-                <div className="min-h-screen bg-gray-50 dark:bg-brandDark-900 transition-colors duration-300">
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<Layout />}>
-                    <Route index element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    
-                    {/* Protected Routes */}
-                    <Route element={<ProtectedRoute />}>
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/create-vault" element={<CreateVault />} />
-                      <Route path="/vault/:id" element={<VaultDetails />} />
-                      <Route path="/profile" element={<Profile />} />
+      {/* SocketProvider wraps the app to provide real-time notification updates */}
+      <SocketProvider>
+        <WalletProvider> 
+            <Router>
+                  <div className="min-h-screen transition-colors duration-300 bg-gray-50 dark:bg-brandDark-900">
+               <Routes>
+                    {/* Public Routes */}
+                    <Route path="/" element={<Layout />}>
+                      <Route index element={<Home />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      
+                      {/* Protected Routes */}
+                      <Route element={<ProtectedRoute />}>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/create-vault" element={<CreateVault />} />
+                        <Route path="/vault/:id" element={<VaultDetails />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/arbitrage" element={<CryptoArbitrage />} />
+                      </Route>
+                      
+                      {/* 404 Route */}
+                      <Route path="*" element={<NotFound />} />
                     </Route>
+                  </Routes>
                     
-                    {/* 404 Route */}
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
-                </Routes>
-                  
-                  {/* Toast Notifications */}
-                  <ToastContainer
-                    position="top-right"
-                    autoClose={5000}
-                    hideProgressBar={false}
-                    newestOnTop={false}
-                    closeOnClick
-                    rtl={false}
-                    pauseOnFocusLoss
-                    draggable
-                    pauseOnHover
-                    theme="colored"
-                    className="mt-16"
-                  />
-                </div>
-          </Router>
-        </AuthInitializer>
-      </WalletProvider>
+                    {/* Toast Notifications */}
+                    <ToastContainer
+                      position="top-right"
+                      autoClose={5000}
+                      hideProgressBar={false}
+                      newestOnTop={false}
+                      closeOnClick
+                      rtl={false}
+                      pauseOnFocusLoss
+                      draggable
+                      pauseOnHover
+                      theme="colored"
+                      className="mt-16"
+                    />
+                  </div>
+            </Router>
+        </WalletProvider>
+      </SocketProvider>
     </QueryClientProvider>
   );
 }

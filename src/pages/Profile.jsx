@@ -10,7 +10,7 @@ import {
   Download,
   ExternalLink
 } from 'lucide-react';
-import { logout } from '../store/slices/authSlice';
+import { logout } from '../redux/slices/authSlice';
 import { useAccount, useBalance, useDisconnect } from 'wagmi';
 
 const Profile = () => {
@@ -58,7 +58,7 @@ const Profile = () => {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Profile & Settings
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <p className="mt-1 text-gray-600 dark:text-gray-400">
           Manage your account settings and preferences.
         </p>
       </div>
@@ -66,14 +66,14 @@ const Profile = () => {
       {/* Profile Overview */}
       <div className="card">
         <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500">
             <User className="w-8 h-8 text-white" />
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               {user?.name || 'Anonymous User'}
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 font-mono text-sm">
+            <p className="font-mono text-sm text-gray-600 dark:text-gray-400">
               {address}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-500">
@@ -91,7 +91,7 @@ const Profile = () => {
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-brandDark-600">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="flex -mb-px space-x-8">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -117,12 +117,12 @@ const Profile = () => {
         {activeTab === 'profile' && (
           <div className="space-y-6">
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                 Account Information
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                     Display Name
                   </label>
                   <input
@@ -133,7 +133,7 @@ const Profile = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                     Email (Optional)
                   </label>
                   <input
@@ -150,23 +150,23 @@ const Profile = () => {
             </div>
 
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                 Wallet Information
               </h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-dark-700">
                   <div className="flex items-center space-x-3">
                     <Wallet className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">
                         Connected Wallet
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                      <p className="font-mono text-sm text-gray-600 dark:text-gray-400">
                         {address}
                       </p>
                     </div>
                   </div>
-                  <button className="text-primary-600 hover:text-primary-700 text-sm">
+                  <button className="text-sm text-primary-600 hover:text-primary-700">
                     <ExternalLink className="w-4 h-4" />
                   </button>
                 </div>
@@ -178,7 +178,7 @@ const Profile = () => {
         {activeTab === 'settings' && (
           <div className="space-y-6">
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                 Data & Privacy
               </h3>
               <div className="space-y-4">
@@ -197,11 +197,11 @@ const Profile = () => {
         {activeTab === 'security' && (
           <div className="space-y-6">
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                 Security Settings
               </h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-dark-700">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">
                       Wallet Authentication
@@ -213,7 +213,7 @@ const Profile = () => {
                   <span className="status-active">Active</span>
                 </div>
                 
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-dark-700">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">
                       Transaction Signing
@@ -232,7 +232,7 @@ const Profile = () => {
         {activeTab === 'notifications' && (
           <div className="space-y-6">
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                 Notification Preferences
               </h3>
               <div className="space-y-4">
@@ -251,8 +251,8 @@ const Profile = () => {
                         {notification.description}
                       </p>
                     </div>
-                    <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary-600">
-                      <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+                    <button className="relative inline-flex items-center h-6 rounded-full w-11 bg-primary-600">
+                      <span className="inline-block w-4 h-4 transform translate-x-6 bg-white rounded-full" />
                     </button>
                   </div>
                 ))}
