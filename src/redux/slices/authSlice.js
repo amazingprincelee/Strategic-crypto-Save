@@ -59,7 +59,7 @@ const initialState = {
   user: JSON.parse(localStorage.getItem("user")) || null,
   token: localStorage.getItem("token") || null,
   role: localStorage.getItem("role") || null,
-  isAuthenticated: !!localStorage.getItem("token"), // ✅ Check if token exists
+  // Removed isAuthenticated - rely on token presence and ProtectedRoute validation
 
   loading: false,
   error: null,
@@ -77,7 +77,7 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.role = null;
-      state.isAuthenticated = false; // ✅ Set to false on logout
+      // isAuthenticated removed - rely on token presence
       state.error = null;
       state.successMessage = null;
 
@@ -122,12 +122,12 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.role = action.payload.role;
         state.user = action.payload.user;
-        state.isAuthenticated = true; // ✅ Set to true on successful login
+        // isAuthenticated removed - rely on token presence
         state.successMessage = "Login successful";
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.isAuthenticated = false; // ✅ Set to false on failed login
+        // isAuthenticated removed - rely on token presence
         state.error = action.payload.message;
       });
   },

@@ -24,8 +24,9 @@ const Header = ({ onMenuToggle, isSidebarOpen }) => {
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
-  const { isAuthenticated, user } = useSelector(state => state.auth);
+  const { token, user } = useSelector(state => state.auth);
   const { theme, toggleTheme, isDark } = useTheme();
+  const isAuthenticated = !!token; // Derive authentication status from token
 
   const handleLogout = () => {
     dispatch(logout());

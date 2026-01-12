@@ -14,12 +14,39 @@ export const fetchArbitrageOpportunities = createAsyncThunk(
       if (params.coin) queryParams.append('coin', params.coin);
       
       const response = await authAPI.get(`/arbitrage/opportunities?${queryParams.toString()}`);
+      
+      // Backend returns { success: true, data: [...opportunities], timestamp, message }
+      // We need the data array
       return response.data.data;
     } catch (err) {
       const message =
         err.response?.data?.message ||
         err.message ||
         "Failed to fetch arbitrage opportunities";
+      return thunkAPI.rejectWithValue({ message });
+    }
+  }
+);
+
+/* ======================
+  REFRESH ARBITRAGE OPPORTUNITIES (Force refresh - clears cache)
+====================== */
+export const refreshArbitrageOpportunities = createAsyncThunk(
+  "arbitrage/refreshOpportunities",
+  async (params = {}, thunkAPI) => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.minProfit) queryParams.append('minProfit', params.minProfit);
+      if (params.minVolume) queryParams.append('minVolume', params.minVolume);
+      if (params.coin) queryParams.append('coin', params.coin);
+      
+      const response = await authAPI.post(`/arbitrage/refresh?${queryParams.toString()}`);
+      return response.data.data;
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to refresh arbitrage opportunities";
       return thunkAPI.rejectWithValue({ message });
     }
   }
@@ -165,19 +192,54 @@ const arbitrageSlice = createSlice({
       })
       .addCase(fetchArbitrageOpportunities.fulfilled, (state, action) => {
         state.loading.opportunities = false;
-        state.opportunities = action.payload.opportunities || [];
+        // Backend returns opportunities array directly in action.payload
+        state.opportunities = action.payload || [];
+        
+        // Calculate stats from opportunities
+        const opps = action.payload || [];
         state.stats = {
           ...state.stats,
-          totalOpportunities: action.payload.opportunities?.length || 0,
-          avgProfitMargin: action.payload.avgProfitMargin || 0,
-          activeTransfers: action.payload.activeTransfers || 0,
-          totalVolume: action.payload.totalVolume || 0
+          totalOpportunities: opps.length,
+          avgProfitMargin: opps.length > 0 
+            ? opps.reduce((acc, opp) => acc + opp.profitMargin, 0) / opps.length 
+            : 0,
+          activeTransfers: opps.filter(opp => opp.transferEnabled).length,
+          totalVolume: opps.reduce((acc, opp) => acc + opp.volume, 0)
         };
         state.lastUpdate = new Date().toISOString();
       })
       .addCase(fetchArbitrageOpportunities.rejected, (state, action) => {
         state.loading.opportunities = false;
         state.error = action.payload?.message || "Failed to fetch opportunities";
+      });
+
+    /* ===== REFRESH OPPORTUNITIES ===== */
+    builder
+      .addCase(refreshArbitrageOpportunities.pending, (state) => {
+        state.loading.opportunities = true;
+        state.error = null;
+      })
+      .addCase(refreshArbitrageOpportunities.fulfilled, (state, action) => {
+        state.loading.opportunities = false;
+        state.opportunities = action.payload || [];
+        
+        // Calculate stats from opportunities
+        const opps = action.payload || [];
+        state.stats = {
+          ...state.stats,
+          totalOpportunities: opps.length,
+          avgProfitMargin: opps.length > 0 
+            ? opps.reduce((acc, opp) => acc + opp.profitMargin, 0) / opps.length 
+            : 0,
+          activeTransfers: opps.filter(opp => opp.transferEnabled).length,
+          totalVolume: opps.reduce((acc, opp) => acc + opp.volume, 0)
+        };
+        state.lastUpdate = new Date().toISOString();
+        state.successMessage = "Arbitrage data refreshed successfully";
+      })
+      .addCase(refreshArbitrageOpportunities.rejected, (state, action) => {
+        state.loading.opportunities = false;
+        state.error = action.payload?.message || "Failed to refresh opportunities";
       });
 
     /* ===== EXECUTE TRADE ===== */
