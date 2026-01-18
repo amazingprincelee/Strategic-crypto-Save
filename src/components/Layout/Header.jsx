@@ -15,7 +15,6 @@ import {
 import { logout } from '../../redux/slices/authSlice';
 import { useTheme } from '../../redux/useTheme';
 import NotificationDropdown from '../Notifications/NotificationDropdown';
-import ConnectButton from '../Web3/ConnectButton';
 
 const Header = ({ onMenuToggle, isSidebarOpen }) => {
   const navigate = useNavigate();
@@ -105,11 +104,6 @@ const Header = ({ onMenuToggle, isSidebarOpen }) => {
 
             {/* Right Side Actions */}
             <div className="flex items-center space-x-2 sm:space-x-4">
-              {/* Wallet Connect */}
-              <div className="hidden sm:block">
-                <ConnectButton isAuthenticated={isAuthenticated} />
-              </div>
-              
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
