@@ -3,62 +3,94 @@ import {
   Settings,
   DollarSign,
   TrendingUp,
-  Hash,
+  Filter,
   Save,
   RotateCcw,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Info
 } from 'lucide-react';
 
-const ArbitrageSettings = ({ currentSettings, onSave, onReset }) => {
+const ArbitrageSettings = ({ onFilterChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [settings, setSettings] = useState({
-    minProfit: currentSettings?.minProfit || 0.1,
-    minVolume: currentSettings?.minVolume || 100,
-    topCoins: currentSettings?.topCoins || 50,
-    ...currentSettings
+  const [filters, setFilters] = useState({
+    minProfitPercent: 0.001,
+    minVolume: 0.0001,
+    showOnlyProfitable: false,
+    maxRisk: 'High',
+    requireTransferable: false
   });
 
-  const handleSave = () => {
-    onSave(settings);
+  const handleApply = () => {
+    if (onFilterChange) {
+      onFilterChange(filters);
+    }
     setIsOpen(false);
   };
 
   const handleReset = () => {
-    const defaultSettings = {
-      minProfit: 0.1,
-      minVolume: 100,
-      topCoins: 50
+    const defaultFilters = {
+      minProfitPercent: 0.001,
+      minVolume: 0.0001,
+      showOnlyProfitable: false,
+      maxRisk: 'High',
+      requireTransferable: false
     };
-    setSettings(defaultSettings);
-    onReset(defaultSettings);
+    setFilters(defaultFilters);
+    if (onFilterChange) {
+      onFilterChange(defaultFilters);
+    }
   };
 
   const presetOptions = [
     {
-      name: 'Conservative',
-      description: 'High profit, high volume - safer but fewer opportunities',
-      settings: { minProfit: 1.0, minVolume: 10000, topCoins: 20 }
+      name: 'Show All',
+      description: 'Display every opportunity - complete market view',
+      settings: { 
+        minProfitPercent: 0.001, 
+        minVolume: 0.0001, 
+        showOnlyProfitable: false,
+        maxRisk: 'High',
+        requireTransferable: false
+      }
     },
     {
-      name: 'Balanced',
-      description: 'Moderate settings - good mix of safety and opportunities',
-      settings: { minProfit: 0.5, minVolume: 1000, topCoins: 50 }
+      name: 'Profitable Only',
+      description: 'Only opportunities profitable after fees',
+      settings: { 
+        minProfitPercent: 0.001, 
+        minVolume: 0.0001, 
+        showOnlyProfitable: true,
+        maxRisk: 'High',
+        requireTransferable: false
+      }
     },
     {
-      name: 'Aggressive',
-      description: 'Low thresholds - more opportunities but riskier',
-      settings: { minProfit: 0.1, minVolume: 100, topCoins: 100 }
+      name: 'Low Risk',
+      description: 'Conservative - high profit, low risk, verified transfers',
+      settings: { 
+        minProfitPercent: 0.5, 
+        minVolume: 0.01, 
+        showOnlyProfitable: true,
+        maxRisk: 'Low',
+        requireTransferable: true
+      }
     },
     {
-      name: 'Maximum Coverage',
-      description: 'Scan everything - most opportunities',
-      settings: { minProfit: 0.05, minVolume: 50, topCoins: 200 }
+      name: 'High Profit',
+      description: 'Focus on highest profit margins (>1%)',
+      settings: { 
+        minProfitPercent: 1.0, 
+        minVolume: 0.001, 
+        showOnlyProfitable: true,
+        maxRisk: 'Medium',
+        requireTransferable: false
+      }
     }
   ];
 
   const applyPreset = (preset) => {
-    setSettings(prev => ({ ...prev, ...preset.settings }));
+    setFilters(preset.settings);
   };
 
   return (
@@ -74,10 +106,10 @@ const ArbitrageSettings = ({ currentSettings, onSave, onReset }) => {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Arbitrage Settings
+              Filter & Display Settings
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Configure scanning parameters
+              Customize which opportunities to display
             </p>
           </div>
         </div>
@@ -92,14 +124,14 @@ const ArbitrageSettings = ({ currentSettings, onSave, onReset }) => {
       {isOpen && (
         <div className="mt-6 space-y-6">
           {/* Current Settings Summary */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div className="p-4 rounded-lg bg-primary-50 dark:bg-primary-900/10">
               <div className="flex items-center gap-2 mb-1 text-sm text-gray-600 dark:text-gray-400">
                 <TrendingUp className="w-4 h-4" />
                 <span>Min Profit</span>
               </div>
               <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                {settings.minProfit}%
+                {filters.minProfitPercent}%
               </p>
             </div>
             
@@ -109,22 +141,35 @@ const ArbitrageSettings = ({ currentSettings, onSave, onReset }) => {
                 <span>Min Volume</span>
               </div>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                ${settings.minVolume}
+                {filters.minVolume}
               </p>
             </div>
             
             <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
               <div className="flex items-center gap-2 mb-1 text-sm text-gray-600 dark:text-gray-400">
-                <Hash className="w-4 h-4" />
-                <span>Top Coins</span>
+                <Filter className="w-4 h-4" />
+                <span>Max Risk</span>
               </div>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {settings.topCoins}
+                {filters.maxRisk}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/10">
+              <div className="flex items-center gap-2 mb-1 text-sm text-gray-600 dark:text-gray-400">
+                <Info className="w-4 h-4" />
+                <span>Filters</span>
+              </div>
+              <p className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                {filters.showOnlyProfitable ? 'Profitable Only' : 'Show All'}
+              </p>
+              <p className="text-xs text-purple-500">
+                {filters.requireTransferable ? 'Verified Only' : 'All Exchanges'}
               </p>
             </div>
           </div>
 
-          {/* Presets */}
+          {/* Quick Presets */}
           <div>
             <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
               Quick Presets
@@ -150,9 +195,9 @@ const ArbitrageSettings = ({ currentSettings, onSave, onReset }) => {
           {/* Custom Settings */}
           <div>
             <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-              Custom Settings
+              Custom Filters
             </h4>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {/* Min Profit */}
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -162,114 +207,131 @@ const ArbitrageSettings = ({ currentSettings, onSave, onReset }) => {
                   <TrendingUp className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
                   <input
                     type="number"
-                    step="0.05"
+                    step="0.001"
                     min="0"
                     max="10"
-                    value={settings.minProfit}
-                    onChange={(e) => setSettings({ ...settings, minProfit: parseFloat(e.target.value) || 0 })}
+                    value={filters.minProfitPercent}
+                    onChange={(e) => setFilters({ ...filters, minProfitPercent: parseFloat(e.target.value) || 0 })}
                     className="w-full pl-10 input"
-                    placeholder="0.1"
+                    placeholder="0.001"
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Lower = more opportunities, higher risk
+                  Lower = more opportunities
                 </p>
               </div>
 
               {/* Min Volume */}
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Minimum Volume (USD)
+                  Minimum Volume (coins)
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
                   <input
                     type="number"
-                    step="100"
+                    step="0.0001"
                     min="0"
-                    value={settings.minVolume}
-                    onChange={(e) => setSettings({ ...settings, minVolume: parseFloat(e.target.value) || 0 })}
+                    value={filters.minVolume}
+                    onChange={(e) => setFilters({ ...filters, minVolume: parseFloat(e.target.value) || 0 })}
                     className="w-full pl-10 input"
-                    placeholder="100"
+                    placeholder="0.0001"
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Higher = more liquidity, easier to execute
+                  Higher = more liquidity
                 </p>
               </div>
 
-              {/* Top Coins */}
+              {/* Max Risk */}
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Top Coins by Market Cap
+                  Maximum Risk Level
                 </label>
                 <div className="relative">
-                  <Hash className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
+                  <Filter className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
                   <select
-                    value={settings.topCoins}
-                    onChange={(e) => setSettings({ ...settings, topCoins: parseInt(e.target.value) })}
+                    value={filters.maxRisk}
+                    onChange={(e) => setFilters({ ...filters, maxRisk: e.target.value })}
                     className="w-full pl-10 input"
                   >
-                    <option value={10}>Top 10</option>
-                    <option value={20}>Top 20</option>
-                    <option value={50}>Top 50</option>
-                    <option value={100}>Top 100</option>
-                    <option value={200}>Top 200</option>
-                    <option value={500}>Top 500</option>
+                    <option value="High">All Risks (Low, Medium, High)</option>
+                    <option value="Medium">Low & Medium Only</option>
+                    <option value="Low">Low Risk Only</option>
                   </select>
                 </div>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  More coins = longer scan time
+                  Lower risk = fewer opportunities
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Toggle Filters */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Additional Filters
+            </h4>
+            
+            <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg cursor-pointer dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+              <input
+                type="checkbox"
+                checked={filters.showOnlyProfitable}
+                onChange={(e) => setFilters({ ...filters, showOnlyProfitable: e.target.checked })}
+                className="w-5 h-5 text-primary-600"
+              />
+              <div className="flex-1">
+                <p className="font-medium text-gray-900 dark:text-white">
+                  Show Only Profitable After Fees
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Hide opportunities that won't be profitable after estimated fees (~0.4%)
+                </p>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg cursor-pointer dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+              <input
+                type="checkbox"
+                checked={filters.requireTransferable}
+                onChange={(e) => setFilters({ ...filters, requireTransferable: e.target.checked })}
+                className="w-5 h-5 text-primary-600"
+              />
+              <div className="flex-1">
+                <p className="font-medium text-gray-900 dark:text-white">
+                  Require Verified Transfers
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Only show opportunities where both exchanges allow deposits/withdrawals
+                </p>
+              </div>
+            </label>
           </div>
 
           {/* Info Box */}
           <div className="p-4 border-l-4 border-blue-500 rounded-lg bg-blue-50 dark:bg-blue-900/20">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              <strong>💡 Tip:</strong> Start with "Balanced" preset and adjust based on results. 
-              Lower thresholds find more opportunities but may include less profitable trades.
-              Scanning more coins takes longer but increases chances of finding good arbitrage.
-            </p>
-          </div>
-
-          {/* Estimated Scan Time */}
-          <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Estimated Scan Time
-              </span>
-              <span className="text-sm font-bold text-gray-900 dark:text-white">
-                ~{Math.ceil(settings.topCoins * 1.2 / 60)} min
-              </span>
-            </div>
-            <div className="w-full h-2 overflow-hidden bg-gray-200 rounded-full dark:bg-gray-700">
-              <div 
-                className="h-full transition-all duration-300 bg-primary-600"
-                style={{ width: `${Math.min((settings.topCoins / 500) * 100, 100)}%` }}
-              />
-            </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              CoinGecko allows 50 API calls/minute. Scanning {settings.topCoins} coins ≈ {settings.topCoins} calls
+              <strong>💡 How it works:</strong> The backend scans exchanges every 5 minutes in the background. 
+              These filters only affect what you see in the table - they don't change the backend scanning.
+              Data updates automatically, no manual refresh needed!
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="flex gap-3">
             <button
-              onClick={handleSave}
+              onClick={handleApply}
               className="flex-1 btn-primary"
             >
               <Save className="w-4 h-4" />
-              <span>Save & Apply Settings</span>
+              <span>Apply Filters</span>
             </button>
             <button
               onClick={handleReset}
               className="btn-secondary"
             >
               <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">Reset to Default</span>
+              <span className="hidden sm:inline">Reset</span>
             </button>
           </div>
         </div>

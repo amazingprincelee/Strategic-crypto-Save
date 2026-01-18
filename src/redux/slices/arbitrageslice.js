@@ -2,22 +2,16 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { authAPI } from "../../services/api";
 
 /* ======================
-  FETCH ARBITRAGE OPPORTUNITIES
+  FETCH ARBITRAGE OPPORTUNITIES (from cache)
 ====================== */
 export const fetchArbitrageOpportunities = createAsyncThunk(
   "arbitrage/fetchOpportunities",
-  async (params = {}, thunkAPI) => {
+  async (_, thunkAPI) => {
     try {
-      const queryParams = new URLSearchParams();
-      if (params.minProfit) queryParams.append('minProfit', params.minProfit);
-      if (params.minVolume) queryParams.append('minVolume', params.minVolume);
-      if (params.coin) queryParams.append('coin', params.coin);
+      const response = await authAPI.get('/arbitrage/fetch-opportunity');
       
-      const response = await authAPI.get(`/arbitrage/opportunities?${queryParams.toString()}`);
-      
-      // Backend returns { success: true, data: [...opportunities], timestamp, message }
-      // We need the data array
-      return response.data.data;
+      // Backend returns: { success: true, count: 5, data: [...], metadata: {...} }
+      return response.data;
     } catch (err) {
       const message =
         err.response?.data?.message ||
@@ -29,19 +23,16 @@ export const fetchArbitrageOpportunities = createAsyncThunk(
 );
 
 /* ======================
-  REFRESH ARBITRAGE OPPORTUNITIES (Force refresh - clears cache)
+  REFRESH ARBITRAGE OPPORTUNITIES (Manual refresh)
 ====================== */
 export const refreshArbitrageOpportunities = createAsyncThunk(
   "arbitrage/refreshOpportunities",
-  async (params = {}, thunkAPI) => {
+  async (_, thunkAPI) => {
     try {
-      const queryParams = new URLSearchParams();
-      if (params.minProfit) queryParams.append('minProfit', params.minProfit);
-      if (params.minVolume) queryParams.append('minVolume', params.minVolume);
-      if (params.coin) queryParams.append('coin', params.coin);
+      const response = await authAPI.post('/arbitrage/refresh');
       
-      const response = await authAPI.post(`/arbitrage/refresh?${queryParams.toString()}`);
-      return response.data.data;
+      // Returns: { success: true, message: "Refresh started...", isLoading: true }
+      return response.data;
     } catch (err) {
       const message =
         err.response?.data?.message ||
@@ -53,61 +44,21 @@ export const refreshArbitrageOpportunities = createAsyncThunk(
 );
 
 /* ======================
-  EXECUTE ARBITRAGE TRADE
+  FETCH ARBITRAGE STATUS
 ====================== */
-export const executeArbitrageTrade = createAsyncThunk(
-  "arbitrage/executeTrade",
-  async (tradeData, thunkAPI) => {
-    try {
-      const response = await authAPI.post('/arbitrage/execute', tradeData);
-      return response.data.data;
-    } catch (err) {
-      const message =
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to execute arbitrage trade";
-      return thunkAPI.rejectWithValue({ message });
-    }
-  }
-);
-
-/* ======================
-  FETCH EXCHANGE STATUS
-====================== */
-export const fetchExchangeStatus = createAsyncThunk(
-  "arbitrage/fetchExchangeStatus",
+export const fetchArbitrageStatus = createAsyncThunk(
+  "arbitrage/fetchStatus",
   async (_, thunkAPI) => {
     try {
-      const response = await authAPI.get('/arbitrage/exchanges/status');
-      return response.data.data;
-    } catch (err) {
-      const message =
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to fetch exchange status";
-      return thunkAPI.rejectWithValue({ message });
-    }
-  }
-);
-
-/* ======================
-  FETCH ARBITRAGE HISTORY
-====================== */
-export const fetchArbitrageHistory = createAsyncThunk(
-  "arbitrage/fetchHistory",
-  async (params = {}, thunkAPI) => {
-    try {
-      const queryParams = new URLSearchParams();
-      if (params.limit) queryParams.append('limit', params.limit);
-      if (params.page) queryParams.append('page', params.page);
+      const response = await authAPI.get('/arbitrage/status');
       
-      const response = await authAPI.get(`/arbitrage/history?${queryParams.toString()}`);
-      return response.data.data;
+      // Returns: { success: true, status: { isReady, isLoading, opportunitiesCount, lastUpdate, ... } }
+      return response.data.status;
     } catch (err) {
       const message =
         err.response?.data?.message ||
         err.message ||
-        "Failed to fetch arbitrage history";
+        "Failed to fetch arbitrage status";
       return thunkAPI.rejectWithValue({ message });
     }
   }
@@ -119,35 +70,48 @@ export const fetchArbitrageHistory = createAsyncThunk(
 const initialState = {
   // Arbitrage data
   opportunities: [],
-  exchangeStatus: [],
-  history: [],
-  stats: {
-    totalOpportunities: 0,
-    avgProfitMargin: 0,
-    activeTransfers: 0,
-    totalVolume: 0,
-    executedTrades: 0,
-    totalProfit: 0
+  
+  // Status information
+  status: {
+    isReady: false,
+    isLoading: false,
+    opportunitiesCount: 0,
+    lastUpdate: null,
+    nextUpdate: null,
+    dataAge: null,
+    error: null
   },
   
-  // Pagination
-  pagination: {
-    currentPage: 1,
-    totalPages: 1,
-    total: 0,
-    limit: 50
+  // Metadata from API
+  metadata: {
+    lastUpdate: null,
+    nextUpdate: null,
+    isRefreshing: false,
+    dataAge: null,
+    dataAgeFormatted: null
+  },
+  
+  // Calculated stats
+  stats: {
+    totalOpportunities: 0,
+    avgProfitPercent: 0,
+    avgNetProfitPercent: 0,
+    profitableAfterFees: 0,
+    totalVolume: 0,
+    bestOpportunity: null,
+    riskBreakdown: {
+      low: 0,
+      medium: 0,
+      high: 0
+    }
   },
   
   // Loading states
   loading: {
     opportunities: false,
-    exchanges: false,
-    history: false,
-    executing: false
+    status: false,
+    refreshing: false
   },
-  
-  // Last update timestamp
-  lastUpdate: null,
   
   // Error and success
   error: null,
@@ -172,14 +136,9 @@ const arbitrageSlice = createSlice({
       return initialState;
     },
     
-    // Update stats
-    updateStats: (state, action) => {
+    // Update local stats
+    updateLocalStats: (state, action) => {
       state.stats = { ...state.stats, ...action.payload };
-    },
-    
-    // Set last update
-    setLastUpdate: (state) => {
-      state.lastUpdate = new Date().toISOString();
     }
   },
   
@@ -192,107 +151,120 @@ const arbitrageSlice = createSlice({
       })
       .addCase(fetchArbitrageOpportunities.fulfilled, (state, action) => {
         state.loading.opportunities = false;
-        // Backend returns opportunities array directly in action.payload
-        state.opportunities = action.payload || [];
         
-        // Calculate stats from opportunities
-        const opps = action.payload || [];
-        state.stats = {
-          ...state.stats,
-          totalOpportunities: opps.length,
-          avgProfitMargin: opps.length > 0 
-            ? opps.reduce((acc, opp) => acc + opp.profitMargin, 0) / opps.length 
-            : 0,
-          activeTransfers: opps.filter(opp => opp.transferEnabled).length,
-          totalVolume: opps.reduce((acc, opp) => acc + opp.volume, 0)
+        const { data, metadata, count } = action.payload;
+        
+        // Store opportunities
+        state.opportunities = data || [];
+        
+        // Store metadata
+        state.metadata = {
+          lastUpdate: metadata?.lastUpdate || null,
+          nextUpdate: metadata?.nextUpdate || null,
+          isRefreshing: metadata?.isRefreshing || false,
+          dataAge: metadata?.dataAge || null,
+          dataAgeFormatted: metadata?.dataAgeFormatted || null
         };
-        state.lastUpdate = new Date().toISOString();
+        
+        // Calculate comprehensive stats
+        const opportunities = data || [];
+        
+        if (opportunities.length > 0) {
+          const profitable = opportunities.filter(o => o.isProfitableAfterFees);
+          
+          // Calculate averages
+          const avgProfit = opportunities.reduce((sum, o) => sum + o.profitPercent, 0) / opportunities.length;
+          const avgNetProfit = opportunities.reduce((sum, o) => sum + o.netProfitPercent, 0) / opportunities.length;
+          
+          // Calculate total volume
+          const totalVol = opportunities.reduce((sum, o) => sum + (o.totalVolume24h || 0), 0);
+          
+          // Risk breakdown
+          const riskBreakdown = opportunities.reduce((acc, o) => {
+            const risk = o.riskLevel.toLowerCase();
+            acc[risk] = (acc[risk] || 0) + 1;
+            return acc;
+          }, { low: 0, medium: 0, high: 0 });
+          
+          // Best opportunity (highest profit after fees)
+          const best = opportunities.reduce((best, current) => {
+            if (!best) return current;
+            return current.profitPercent > best.profitPercent ? current : best;
+          }, null);
+          
+          state.stats = {
+            totalOpportunities: opportunities.length,
+            avgProfitPercent: avgProfit,
+            avgNetProfitPercent: avgNetProfit,
+            profitableAfterFees: profitable.length,
+            totalVolume: totalVol,
+            bestOpportunity: best,
+            riskBreakdown
+          };
+        } else {
+          // Reset stats if no opportunities
+          state.stats = {
+            totalOpportunities: 0,
+            avgProfitPercent: 0,
+            avgNetProfitPercent: 0,
+            profitableAfterFees: 0,
+            totalVolume: 0,
+            bestOpportunity: null,
+            riskBreakdown: { low: 0, medium: 0, high: 0 }
+          };
+        }
       })
       .addCase(fetchArbitrageOpportunities.rejected, (state, action) => {
         state.loading.opportunities = false;
-        state.error = action.payload?.message || "Failed to fetch opportunities";
+        
+        // Check if it's a loading state (202 status)
+        if (action.payload?.message?.includes('loading') || 
+            action.payload?.message?.includes('still loading')) {
+          state.error = null;
+          state.successMessage = action.payload.message;
+          state.metadata.isRefreshing = true;
+        } else {
+          state.error = action.payload?.message || "Failed to fetch opportunities";
+        }
       });
 
     /* ===== REFRESH OPPORTUNITIES ===== */
     builder
       .addCase(refreshArbitrageOpportunities.pending, (state) => {
-        state.loading.opportunities = true;
+        state.loading.refreshing = true;
         state.error = null;
       })
       .addCase(refreshArbitrageOpportunities.fulfilled, (state, action) => {
-        state.loading.opportunities = false;
-        state.opportunities = action.payload || [];
-        
-        // Calculate stats from opportunities
-        const opps = action.payload || [];
-        state.stats = {
-          ...state.stats,
-          totalOpportunities: opps.length,
-          avgProfitMargin: opps.length > 0 
-            ? opps.reduce((acc, opp) => acc + opp.profitMargin, 0) / opps.length 
-            : 0,
-          activeTransfers: opps.filter(opp => opp.transferEnabled).length,
-          totalVolume: opps.reduce((acc, opp) => acc + opp.volume, 0)
-        };
-        state.lastUpdate = new Date().toISOString();
-        state.successMessage = "Arbitrage data refreshed successfully";
+        state.loading.refreshing = false;
+        state.metadata.isRefreshing = true;
+        state.successMessage = action.payload.message || "Refresh started. Data will update in a few minutes.";
       })
       .addCase(refreshArbitrageOpportunities.rejected, (state, action) => {
-        state.loading.opportunities = false;
-        state.error = action.payload?.message || "Failed to refresh opportunities";
+        state.loading.refreshing = false;
+        state.error = action.payload?.message || "Failed to trigger refresh";
       });
 
-    /* ===== EXECUTE TRADE ===== */
+    /* ===== FETCH STATUS ===== */
     builder
-      .addCase(executeArbitrageTrade.pending, (state) => {
-        state.loading.executing = true;
+      .addCase(fetchArbitrageStatus.pending, (state) => {
+        state.loading.status = true;
         state.error = null;
       })
-      .addCase(executeArbitrageTrade.fulfilled, (state, action) => {
-        state.loading.executing = false;
-        state.successMessage = "Trade executed successfully";
-        state.stats.executedTrades += 1;
-        state.stats.totalProfit += action.payload.profit || 0;
-      })
-      .addCase(executeArbitrageTrade.rejected, (state, action) => {
-        state.loading.executing = false;
-        state.error = action.payload?.message || "Failed to execute trade";
-      });
-
-    /* ===== FETCH EXCHANGE STATUS ===== */
-    builder
-      .addCase(fetchExchangeStatus.pending, (state) => {
-        state.loading.exchanges = true;
-        state.error = null;
-      })
-      .addCase(fetchExchangeStatus.fulfilled, (state, action) => {
-        state.loading.exchanges = false;
-        state.exchangeStatus = action.payload || [];
-      })
-      .addCase(fetchExchangeStatus.rejected, (state, action) => {
-        state.loading.exchanges = false;
-        state.error = action.payload?.message || "Failed to fetch exchange status";
-      });
-
-    /* ===== FETCH HISTORY ===== */
-    builder
-      .addCase(fetchArbitrageHistory.pending, (state) => {
-        state.loading.history = true;
-        state.error = null;
-      })
-      .addCase(fetchArbitrageHistory.fulfilled, (state, action) => {
-        state.loading.history = false;
-        state.history = action.payload.history || [];
-        state.pagination = {
-          currentPage: action.payload.currentPage || 1,
-          totalPages: action.payload.totalPages || 1,
-          total: action.payload.total || 0,
-          limit: action.payload.limit || 50
+      .addCase(fetchArbitrageStatus.fulfilled, (state, action) => {
+        state.loading.status = false;
+        state.status = {
+          isReady: action.payload.isReady || false,
+          isLoading: action.payload.isLoading || false,
+          opportunitiesCount: action.payload.opportunitiesCount || 0,
+          lastUpdate: action.payload.lastUpdate || null,
+          nextUpdate: action.payload.nextUpdate || null,
+          dataAge: action.payload.dataAge || null,
+          error: action.payload.error || null
         };
       })
-      .addCase(fetchArbitrageHistory.rejected, (state, action) => {
-        state.loading.history = false;
-        state.error = action.payload?.message || "Failed to fetch history";
+      .addCase(fetchArbitrageStatus.rejected, (state, action) => {
+        state.loading.status = false;
+        state.error = action.payload?.message || "Failed to fetch status";
       });
   },
 });
@@ -300,8 +272,7 @@ const arbitrageSlice = createSlice({
 export const {
   clearArbitrageMessages,
   resetArbitrageState,
-  updateStats,
-  setLastUpdate
+  updateLocalStats
 } = arbitrageSlice.actions;
 
 export default arbitrageSlice.reducer;
