@@ -156,28 +156,24 @@ const CryptoArbitrage = () => {
           )}
         </div>
         <div className="flex gap-2">
-          {hasLoadedOnce && (
-            <>
-              <button
-                onClick={handleLoadOpportunities}
-                disabled={loading.opportunities || !status.isReady}
-                className="btn-secondary"
-                title="Reload opportunities"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading.opportunities ? 'animate-spin' : ''}`} />
-                <span>Reload</span>
-              </button>
-              <button
-                onClick={handleManualRefresh}
-                disabled={loading.refreshing || status.isLoading}
-                className="btn-primary"
-                title="Force new data fetch (takes 2-5 min)"
-              >
-                <Zap className={`w-4 h-4 ${loading.refreshing ? 'animate-pulse' : ''}`} />
-                <span>Force Update</span>
-              </button>
-            </>
-          )}
+          <button
+            onClick={handleLoadOpportunities}
+            disabled={loading.opportunities || !status.isReady}
+            className="btn-secondary"
+            title="Load/Reload opportunities"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading.opportunities ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{hasLoadedOnce ? 'Reload' : 'Load'}</span>
+          </button>
+          <button
+            onClick={handleManualRefresh}
+            disabled={loading.refreshing || status.isLoading}
+            className="btn-primary"
+            title="Force new data fetch (takes 2-5 min)"
+          >
+            <Zap className={`w-4 h-4 ${loading.refreshing ? 'animate-pulse' : ''}`} />
+            <span className="hidden sm:inline">Force Update</span>
+          </button>
         </div>
       </div>
 
@@ -208,205 +204,261 @@ const CryptoArbitrage = () => {
         </div>
       )}
 
-      {/* Status Card - Show when data is loading in background */}
-      {status.isLoading && !status.isReady && (
-        <div className="p-6 border-l-4 border-blue-500 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-          <div className="flex items-start gap-3">
-            <RefreshCw className="flex-shrink-0 w-5 h-5 text-blue-600 animate-spin dark:text-blue-400" />
-            <div className="flex-1">
-              <h3 className="font-medium text-blue-800 dark:text-blue-200">
-                Arbitrage Scanner is Initializing...
-              </h3>
-              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                We're scanning exchanges and finding arbitrage opportunities. This usually takes 2-5 minutes on first load.
-                The "Load Opportunities" button will appear when data is ready.
+      {/* Stats Cards - Always show */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Opportunities</p>
+              <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                {stats.totalOpportunities || status.opportunitiesCount || 0}
               </p>
-              <div className="mt-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Progress</span>
-                  <span className="text-xs text-blue-600 dark:text-blue-400">
-                    {status.opportunitiesCount || 0} opportunities found so far
+              <p className="mt-1 text-xs text-gray-500">
+                {stats.profitableAfterFees || 0} profitable after fees
+              </p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-primary-500" />
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Avg Profit</p>
+              <p className="mt-1 text-2xl font-bold text-green-600">
+                {(stats.avgProfitPercent || 0).toFixed(3)}%
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                {(stats.avgNetProfitPercent || 0).toFixed(3)}% after fees
+              </p>
+            </div>
+            <DollarSign className="w-8 h-8 text-green-500" />
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Best Opportunity</p>
+              <p className="mt-1 text-2xl font-bold text-purple-600">
+                {stats.bestOpportunity ? `${stats.bestOpportunity.profitPercent.toFixed(3)}%` : 'N/A'}
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                {stats.bestOpportunity?.symbol || '-'}
+              </p>
+            </div>
+            <BarChart3 className="w-8 h-8 text-purple-500" />
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Risk Breakdown</p>
+              <div className="flex gap-2 mt-1">
+                <span className="text-xs font-medium text-green-600">L:{stats.riskBreakdown?.low || 0}</span>
+                <span className="text-xs font-medium text-yellow-600">M:{stats.riskBreakdown?.medium || 0}</span>
+                <span className="text-xs font-medium text-red-600">H:{stats.riskBreakdown?.high || 0}</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Low / Medium / High
+              </p>
+            </div>
+            <Shield className="w-8 h-8 text-blue-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* Filters - Always show */}
+      <div className="card">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
+            <input
+              type="text"
+              placeholder="Search by coin or symbol..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="w-full pl-10 input"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <select
+              value={filters.sortBy}
+              onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+              className="input"
+            >
+              <option value="profitPercent">Sort by Profit %</option>
+              <option value="netProfitPercent">Sort by Net Profit %</option>
+              <option value="volume">Sort by Volume</option>
+            </select>
+
+            <select
+              value={filters.maxRisk}
+              onChange={(e) => setFilters({ ...filters, maxRisk: e.target.value })}
+              className="input"
+            >
+              <option value="High">All Risks</option>
+              <option value="Medium">Low-Medium Only</option>
+              <option value="Low">Low Risk Only</option>
+            </select>
+
+            <label className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg cursor-pointer dark:border-gray-600">
+              <input
+                type="checkbox"
+                checked={filters.showOnlyProfitable}
+                onChange={(e) => setFilters({ ...filters, showOnlyProfitable: e.target.checked })}
+                className="w-4 h-4 text-primary-600"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">Profitable Only</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Opportunities Table - Always show */}
+      <div className="card">
+        {/* Loading State */}
+        {loading.opportunities ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <RefreshCw className="w-12 h-12 mb-4 animate-spin text-primary-600" />
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading arbitrage opportunities...
+            </p>
+          </div>
+        ) : /* Initializing State - Scanner is fetching data */
+        status.isLoading && !status.isReady && !hasLoadedOnce ? (
+          <div className="py-12">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+              </div>
+              <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
+                Scanning Exchanges...
+              </h3>
+              <p className="max-w-md mb-4 text-gray-600 dark:text-gray-400">
+                The arbitrage scanner is fetching price data from exchanges. This usually takes 2-5 minutes on first load.
+              </p>
+              <div className="w-full max-w-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-500">Finding opportunities</span>
+                  <span className="px-2 py-0.5 text-xs font-bold text-white bg-blue-600 rounded-full">
+                    {status.opportunitiesCount || 0}
                   </span>
                 </div>
-                <div className="w-full h-2 overflow-hidden bg-blue-200 rounded-full dark:bg-blue-800">
-                  <div className="h-full transition-all duration-500 bg-blue-600 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                {/* Dynamic progress bar based on opportunities found */}
+                <div className="relative w-full h-3 overflow-hidden bg-gray-200 rounded-full dark:bg-gray-700">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 rounded-full transition-all duration-500 ease-out relative overflow-hidden"
+                    style={{
+                      width: `${Math.min(95, Math.max(15, (status.opportunitiesCount || 0) / 1.5))}%`
+                    }}
+                  />
+                  {/* Moving shine effect */}
+                  <div className="absolute inset-0 overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"
+                      style={{
+                        left: '0%',
+                        animation: 'moveRight 1.5s ease-in-out infinite'
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-gray-400">
+                    Scanning markets...
+                  </p>
+                  <p className="text-xs text-blue-500 font-medium">
+                    {Math.min(95, Math.max(15, Math.round((status.opportunitiesCount || 0) / 1.5)))}%
+                  </p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Load Opportunities Button - Show when data is ready but not loaded yet */}
-      {status.isReady && !hasLoadedOnce && (
-        <div className="p-8 text-center border-2 border-dashed rounded-lg border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/10">
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30">
-              <Download className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-            </div>
-            <div>
-              <h3 className="mb-2 text-xl font-bold text-gray-900 dark:text-white">
+        ) : /* Ready to Load State */
+        status.isReady && !hasLoadedOnce ? (
+          <div className="py-12">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-green-100 dark:bg-green-900/30">
+                <Download className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
                 {status.opportunitiesCount || 0} Opportunities Ready!
               </h3>
-              <p className="mb-4 text-gray-600 dark:text-gray-400">
+              <p className="max-w-md mb-4 text-gray-600 dark:text-gray-400">
                 Background scanning complete. Click below to load and view all arbitrage opportunities.
               </p>
               <button
                 onClick={handleLoadOpportunities}
                 disabled={loading.opportunities}
-                className="btn-primary btn-lg"
+                className="btn-primary"
               >
                 <Download className={`w-5 h-5 ${loading.opportunities ? 'animate-bounce' : ''}`} />
                 <span>Load Opportunities</span>
               </button>
+              {status.lastUpdate && (
+                <p className="mt-3 text-xs text-gray-500">
+                  Data updated: {new Date(status.lastUpdate).toLocaleString()}
+                </p>
+              )}
             </div>
-            {metadata.lastUpdate && (
-              <p className="text-xs text-gray-500 dark:text-gray-500">
-                Data last updated: {new Date(status.lastUpdate).toLocaleString()}
-              </p>
-            )}
           </div>
-        </div>
-      )}
-
-      {/* Stats Cards - Only show after loading */}
-      {hasLoadedOnce && opportunities.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Opportunities</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.totalOpportunities || 0}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {stats.profitableAfterFees || 0} profitable after fees
-                </p>
+        ) : /* Waiting for Scanner State */
+        !status.isReady && !status.isLoading && !hasLoadedOnce ? (
+          <div className="py-12">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-gray-100 dark:bg-gray-800">
+                <Activity className="w-8 h-8 text-gray-400" />
               </div>
-              <TrendingUp className="w-8 h-8 text-primary-500" />
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Avg Profit</p>
-                <p className="mt-1 text-2xl font-bold text-green-600">
-                  {(stats.avgProfitPercent || 0).toFixed(3)}%
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {(stats.avgNetProfitPercent || 0).toFixed(3)}% after fees
-                </p>
-              </div>
-              <DollarSign className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Best Opportunity</p>
-                <p className="mt-1 text-2xl font-bold text-purple-600">
-                  {stats.bestOpportunity ? `${stats.bestOpportunity.profitPercent.toFixed(3)}%` : 'N/A'}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {stats.bestOpportunity?.symbol || '-'}
-                </p>
-              </div>
-              <BarChart3 className="w-8 h-8 text-purple-500" />
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Risk Breakdown</p>
-                <div className="flex gap-2 mt-1">
-                  <span className="text-xs font-medium text-green-600">L:{stats.riskBreakdown?.low || 0}</span>
-                  <span className="text-xs font-medium text-yellow-600">M:{stats.riskBreakdown?.medium || 0}</span>
-                  <span className="text-xs font-medium text-red-600">H:{stats.riskBreakdown?.high || 0}</span>
-                </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Low / Medium / High
-                </p>
-              </div>
-              <Shield className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filters - Only show after loading */}
-      {hasLoadedOnce && opportunities.length > 0 && (
-        <div className="card">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
-              <input
-                type="text"
-                placeholder="Search by coin or symbol..."
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="w-full pl-10 input"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <select
-                value={filters.sortBy}
-                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                className="input"
-              >
-                <option value="profitPercent">Sort by Profit %</option>
-                <option value="netProfitPercent">Sort by Net Profit %</option>
-                <option value="volume">Sort by Volume</option>
-              </select>
-
-              <select
-                value={filters.maxRisk}
-                onChange={(e) => setFilters({ ...filters, maxRisk: e.target.value })}
-                className="input"
-              >
-                <option value="High">All Risks</option>
-                <option value="Medium">Low-Medium Only</option>
-                <option value="Low">Low Risk Only</option>
-              </select>
-
-              <label className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg cursor-pointer dark:border-gray-600">
-                <input
-                  type="checkbox"
-                  checked={filters.showOnlyProfitable}
-                  onChange={(e) => setFilters({ ...filters, showOnlyProfitable: e.target.checked })}
-                  className="w-4 h-4 text-primary-600"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Profitable Only</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Opportunities Table - Only show after loading */}
-      {hasLoadedOnce && (
-        <div className="card">
-          {loading.opportunities ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <RefreshCw className="w-12 h-12 mb-4 animate-spin text-primary-600" />
-              <p className="text-gray-600 dark:text-gray-400">
-                Loading arbitrage opportunities...
-              </p>
-            </div>
-          ) : filteredOpportunities.length === 0 ? (
-            <div className="py-12 text-center">
-              <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
-                No Opportunities Found
+                Connecting to Scanner...
               </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Try adjusting your filters or wait for new opportunities to appear
+              <p className="max-w-md mb-4 text-gray-600 dark:text-gray-400">
+                Checking arbitrage scanner status. Please wait a moment...
               </p>
+              <button
+                onClick={() => dispatch(fetchArbitrageStatus())}
+                className="btn-secondary"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Check Status</span>
+              </button>
             </div>
-          ) : (
+          </div>
+        ) : /* No Data After Loading */
+        hasLoadedOnce && filteredOpportunities.length === 0 ? (
+          <div className="py-12 text-center">
+            <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
+              No Opportunities Found
+            </h3>
+            <p className="mb-4 text-gray-600 dark:text-gray-400">
+              {opportunities.length === 0
+                ? "No arbitrage opportunities available at the moment."
+                : "Try adjusting your filters to see more opportunities."}
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={handleLoadOpportunities}
+                disabled={loading.opportunities}
+                className="btn-secondary"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading.opportunities ? 'animate-spin' : ''}`} />
+                <span>Reload</span>
+              </button>
+              <button
+                onClick={handleManualRefresh}
+                disabled={loading.refreshing || status.isLoading}
+                className="btn-primary"
+              >
+                <Zap className="w-4 h-4" />
+                <span>Force Update</span>
+              </button>
+            </div>
+          </div>
+        ) : /* Data Table */ (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-brandDark-800">
@@ -575,8 +627,7 @@ const CryptoArbitrage = () => {
               </table>
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       {/* Opportunity Detail Modal */}
       {selectedOpportunity && (

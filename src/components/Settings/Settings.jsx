@@ -97,16 +97,29 @@ const Settings = () => {
     setHasChanges(true);
   };
 
-  // Handle exchange toggle
+  // Maximum exchanges allowed
+  const MAX_EXCHANGES = 10;
+
+  // Handle exchange toggle with limit
   const handleExchangeToggle = (exchangeId) => {
+    const isCurrentlySelected = arbitrage.selectedExchanges.includes(exchangeId.toLowerCase());
+
+    // If trying to add and already at max, show warning
+    if (!isCurrentlySelected && arbitrage.selectedExchanges.length >= MAX_EXCHANGES) {
+      alert(`Maximum ${MAX_EXCHANGES} exchanges allowed. Please deselect an exchange first.`);
+      return;
+    }
+
     dispatch(toggleExchange(exchangeId));
     setHasChanges(true);
   };
 
-  // Select/deselect all exchanges
+  // Select/deselect all exchanges (limited to MAX_EXCHANGES)
   const handleSelectAllExchanges = (select) => {
     if (select) {
-      dispatch(setSelectedExchanges(exchanges.map(e => e.exchangeId)));
+      // Only select up to MAX_EXCHANGES
+      const limitedExchanges = exchanges.slice(0, MAX_EXCHANGES).map(e => e.exchangeId);
+      dispatch(setSelectedExchanges(limitedExchanges));
     } else {
       dispatch(setSelectedExchanges([]));
     }
@@ -526,8 +539,8 @@ const Settings = () => {
               <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm text-amber-800 dark:text-amber-200">
-                  <strong>Tip:</strong> More exchanges = more opportunities but slower scans.
-                  Start with 2-5 exchanges for best performance.
+                  <strong>Limit:</strong> Maximum {MAX_EXCHANGES} exchanges allowed.
+                  More exchanges = more opportunities but slower scans. Start with 2-5 for best performance.
                 </p>
               </div>
             </div>
@@ -547,9 +560,10 @@ const Settings = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleSelectAllExchanges(true)}
+                  disabled={arbitrage.selectedExchanges.length >= MAX_EXCHANGES}
                   className="text-sm btn-secondary flex-1 sm:flex-none"
                 >
-                  Select All
+                  Select Top {MAX_EXCHANGES}
                 </button>
                 <button
                   onClick={() => handleSelectAllExchanges(false)}
@@ -561,11 +575,24 @@ const Settings = () => {
             </div>
 
             {/* Selected Count */}
-            <div className="flex items-center justify-between p-3 mb-4 rounded-lg bg-primary-50 dark:bg-primary-900/20">
+            <div className={`flex items-center justify-between p-3 mb-4 rounded-lg ${
+              arbitrage.selectedExchanges.length >= MAX_EXCHANGES
+                ? 'bg-amber-50 dark:bg-amber-900/20'
+                : 'bg-primary-50 dark:bg-primary-900/20'
+            }`}>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-primary-600" />
-                <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                  {arbitrage.selectedExchanges.length} of {exchanges.length} exchanges selected
+                <Check className={`w-4 h-4 ${
+                  arbitrage.selectedExchanges.length >= MAX_EXCHANGES
+                    ? 'text-amber-600'
+                    : 'text-primary-600'
+                }`} />
+                <span className={`text-sm font-medium ${
+                  arbitrage.selectedExchanges.length >= MAX_EXCHANGES
+                    ? 'text-amber-700 dark:text-amber-300'
+                    : 'text-primary-700 dark:text-primary-300'
+                }`}>
+                  {arbitrage.selectedExchanges.length} / {MAX_EXCHANGES} exchanges selected
+                  {arbitrage.selectedExchanges.length >= MAX_EXCHANGES && ' (Maximum reached)'}
                 </span>
               </div>
               {hasChanges && (
@@ -585,25 +612,33 @@ const Settings = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-2">
                 {filteredExchanges.map((exchange) => {
                   const isSelected = arbitrage.selectedExchanges.includes(exchange.exchangeId);
+                  const isDisabled = !isSelected && arbitrage.selectedExchanges.length >= MAX_EXCHANGES;
                   return (
                     <label
                       key={exchange.exchangeId}
                       className={`
-                        flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all
+                        flex items-center gap-3 p-3 border rounded-lg transition-all
+                        ${isDisabled
+                          ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-gray-700'
+                          : 'cursor-pointer'
+                        }
                         ${isSelected
                           ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-500'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-brandDark-700'
+                          : !isDisabled
+                            ? 'border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-brandDark-700'
+                            : ''
                         }
                       `}
                     >
                       <input
                         type="checkbox"
                         checked={isSelected}
+                        disabled={isDisabled}
                         onChange={() => handleExchangeToggle(exchange.exchangeId)}
-                        className="w-5 h-5 rounded text-primary-600"
+                        className="w-5 h-5 rounded text-primary-600 disabled:opacity-50"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 truncate dark:text-white">
+                        <div className={`font-medium truncate ${isDisabled ? 'text-gray-400' : 'text-gray-900 dark:text-white'}`}>
                           {exchange.name}
                         </div>
                         <div className="text-xs text-gray-500 truncate">

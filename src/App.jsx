@@ -39,29 +39,30 @@ function App() {
     <QueryClientProvider client={queryClient}>
       {/* SocketProvider wraps the app to provide real-time notification updates */}
       <SocketProvider>
-        <WalletProvider> 
+        <WalletProvider>
             <Router>
                   <div className="min-h-screen transition-colors duration-300 bg-gray-50 dark:bg-brandDark-900">
                <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<Layout />}>
-                      <Route index element={<Home />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/register" element={<Register />} />
-                      
-                      {/* Protected Routes */}
+                    {/* Public Routes - Outside Layout (no sidebar) */}
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+
+                    {/* Protected Routes - Inside Layout (with sidebar) */}
+                    <Route element={<Layout />}>
                       <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/create-vault" element={<CreateVault />} />
                         <Route path="/vault/:id" element={<VaultDetails />} />
+                        <Route path="/vaults" element={<Dashboard />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/arbitrage" element={<CryptoArbitrage />} />
                         <Route path="/settings" element={<Settings />} />
                       </Route>
-                      
-                      {/* 404 Route */}
-                      <Route path="*" element={<NotFound />} />
                     </Route>
+
+                    {/* 404 Route */}
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                     
                     {/* Toast Notifications */}
