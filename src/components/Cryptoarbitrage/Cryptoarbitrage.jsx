@@ -480,14 +480,38 @@ const CryptoArbitrage = () => {
                           </span>
                         </td>
 
-                        <td className="px-4 py-4 text-right whitespace-nowrap">
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Buy:</div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            ${opp.buyPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Sell:</div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            ${opp.sellPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="space-y-2">
+                            {/* Buy Price & Ask Depth */}
+                            <div className="p-2 rounded bg-blue-50 dark:bg-blue-900/20">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs text-blue-600 dark:text-blue-400">Buy:</span>
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                  ${opp.buyPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                                </span>
+                              </div>
+                              {opp.buyOrderBook?.[0] && (
+                                <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
+                                  <span>Available:</span>
+                                  <span className="font-mono">{opp.buyOrderBook[0][1]?.toFixed(4)} {opp.coin}</span>
+                                </div>
+                              )}
+                            </div>
+                            {/* Sell Price & Bid Depth */}
+                            <div className="p-2 rounded bg-green-50 dark:bg-green-900/20">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs text-green-600 dark:text-green-400">Sell:</span>
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                  ${opp.sellPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                                </span>
+                              </div>
+                              {opp.sellOrderBook?.[0] && (
+                                <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
+                                  <span>Available:</span>
+                                  <span className="font-mono">{opp.sellOrderBook[0][1]?.toFixed(4)} {opp.coin}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
 
@@ -626,14 +650,92 @@ const CryptoArbitrage = () => {
                 <p className="text-sm text-blue-700 dark:text-blue-300">{selectedOpportunity.fees.note}</p>
               </div>
 
-              <div className="p-3 border-l-4 border-gray-500 rounded bg-gray-50 dark:bg-gray-800">
-                <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Transfer Status</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Buy Exchange: {selectedOpportunity.buyTransferable ? '✓ Allowed' : '✗ Blocked'}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Sell Exchange: {selectedOpportunity.sellTransferable ? '✓ Allowed' : '✗ Blocked'}
-                </p>
+              {/* Order Book Depth */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Buy Side Order Book */}
+                <div className="p-4 border border-blue-200 rounded-lg dark:border-blue-800">
+                  <p className="mb-2 text-sm font-medium text-blue-700 dark:text-blue-300">
+                    Buy Order Book ({selectedOpportunity.buyExchange})
+                  </p>
+                  <div className="space-y-1">
+                    {selectedOpportunity.buyOrderBook?.slice(0, 3).map((order, idx) => (
+                      <div key={idx} className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          ${order[0]?.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                        </span>
+                        <span className="font-mono text-blue-600 dark:text-blue-400">
+                          {order[1]?.toFixed(4)} {selectedOpportunity.coin}
+                        </span>
+                      </div>
+                    )) || <p className="text-xs text-gray-500">No order book data</p>}
+                  </div>
+                </div>
+
+                {/* Sell Side Order Book */}
+                <div className="p-4 border border-green-200 rounded-lg dark:border-green-800">
+                  <p className="mb-2 text-sm font-medium text-green-700 dark:text-green-300">
+                    Sell Order Book ({selectedOpportunity.sellExchange})
+                  </p>
+                  <div className="space-y-1">
+                    {selectedOpportunity.sellOrderBook?.slice(0, 3).map((order, idx) => (
+                      <div key={idx} className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          ${order[0]?.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                        </span>
+                        <span className="font-mono text-green-600 dark:text-green-400">
+                          {order[1]?.toFixed(4)} {selectedOpportunity.coin}
+                        </span>
+                      </div>
+                    )) || <p className="text-xs text-gray-500">No order book data</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Transfer Status */}
+              <div className="p-4 border border-gray-200 rounded-lg dark:border-gray-700">
+                <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Transfer Status</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className={`p-3 rounded-lg ${
+                    selectedOpportunity.buyTransferable === true
+                      ? 'bg-green-50 dark:bg-green-900/20'
+                      : selectedOpportunity.buyTransferable === false
+                        ? 'bg-red-50 dark:bg-red-900/20'
+                        : 'bg-gray-50 dark:bg-gray-800'
+                  }`}>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Buy Exchange</p>
+                    <p className={`font-medium ${
+                      selectedOpportunity.buyTransferable === true
+                        ? 'text-green-600'
+                        : selectedOpportunity.buyTransferable === false
+                          ? 'text-red-600'
+                          : 'text-gray-500'
+                    }`}>
+                      {selectedOpportunity.buyTransferable === true ? '✓ Transfers Enabled' :
+                       selectedOpportunity.buyTransferable === false ? '✗ Transfers Blocked' :
+                       '? Unknown Status'}
+                    </p>
+                  </div>
+                  <div className={`p-3 rounded-lg ${
+                    selectedOpportunity.sellTransferable === true
+                      ? 'bg-green-50 dark:bg-green-900/20'
+                      : selectedOpportunity.sellTransferable === false
+                        ? 'bg-red-50 dark:bg-red-900/20'
+                        : 'bg-gray-50 dark:bg-gray-800'
+                  }`}>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Sell Exchange</p>
+                    <p className={`font-medium ${
+                      selectedOpportunity.sellTransferable === true
+                        ? 'text-green-600'
+                        : selectedOpportunity.sellTransferable === false
+                          ? 'text-red-600'
+                          : 'text-gray-500'
+                    }`}>
+                      {selectedOpportunity.sellTransferable === true ? '✓ Transfers Enabled' :
+                       selectedOpportunity.sellTransferable === false ? '✗ Transfers Blocked' :
+                       '? Unknown Status'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -10,6 +10,7 @@ import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import WalletProvider from './components/Web3/WalletProvider';
 import { SocketProvider } from './components/socket/SocketContext'; 
+import Settings from './components/Settings/Settings'
 
 // Pages
 import Home from './pages/Home';
@@ -55,6 +56,7 @@ function App() {
                         <Route path="/vault/:id" element={<VaultDetails />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/arbitrage" element={<CryptoArbitrage />} />
+                        <Route path="/settings" element={<Settings />} />
                       </Route>
                       
                       {/* 404 Route */}
